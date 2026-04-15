@@ -8,9 +8,11 @@ from pathlib import Path
 import typer
 from rich.console import Console
 
+from fileforge.ai.classifier import classify_file
 from fileforge.analysis.dedup import find_exact_duplicates, hash_file
 from fileforge.config import load_config
 from fileforge.db import SessionDB
+from fileforge.extractor import extract_snippet
 from fileforge.report.generator import print_scan_summary
 from fileforge.scanner import Scanner
 
@@ -91,6 +93,24 @@ def scan(
 
         # Detect exact duplicates
         dup_groups = find_exact_duplicates(hashed_records)
+
+        # AI classification (unless --no-classify)
+        if not no_classify:
+            console.print(f"Classifying {len(hashed_records)} files...")
+            classified_records = []
+            for record in hashed_records:
+                snippet = extract_snippet(record.path, max_chars=2000)
+                category = classify_file(
+                    path=record.path,
+                    snippet=snippet,
+                    model=cfg.ai.classification_model,
+                    hints=cfg.ai.category_hints,
+                )
+                if record.id is not None:
+                    db.update_category(record.id, category)
+                record = record.model_copy(update={"category": category})
+                classified_records.append(record)
+            hashed_records = classified_records
 
         # Print report
         print_scan_summary(console, hashed_records, dup_groups)
