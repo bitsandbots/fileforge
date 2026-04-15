@@ -1,0 +1,28 @@
+[general]
+scan_dirs = ["~/Documents", "~/Downloads"]
+output_dir = "~/.fileforge"
+max_depth = -1
+max_extract_size = 52428800
+
+[ai]
+classification_model = "qwen3:4b"
+embedding_model = "nomic-embed-text"
+ollama_url = "http://localhost:11434"
+snippet_length = 2000
+category_hints = """
+I am a technology consultant working with nonprofits.
+My projects include embedded systems, web development, and self-hosted infrastructure.
+"""
+
+[duplicates]
+similarity_threshold = 0.92
+semantic_dedup = true
+
+[staleness]
+stale_days = 365
+junk_patterns = ["Thumbs.db", ".DS_Store", "desktop.ini", "~$*", "*.tmp"]
+temp_patterns = ["*.bak", "*.swp", "*.log", "*.orig"]
+detect_versions = true
+
+[ignore]
+patterns = [".git", "node_modules", "__pycache__", ".venv", "*.iso", "*.vmdk"]

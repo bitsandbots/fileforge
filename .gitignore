@@ -1,0 +1,86 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+*.egg
+MANIFEST
+
+# Distribution archives
+*.whl
+*.tar.gz
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+.env.bak
+
+# Test artifacts
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.cover
+
+# Type checking
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pytype/
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*~
+*.orig
+*.rej
+.ropeproject/
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# FileForge runtime files (local config, not example)
+fileforge.toml
+sessions.db
+_fileforge_trash/
+
+# Secrets and env
+.env
+*.pem
+*_rsa
+*_rsa.pub
+*_ed25519
+*_ed25519.pub
+credentials.json
+secrets.json
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+.tmp/
+
+# ipython / jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# NOTE: fileforge.toml.example is intentionally NOT ignored — keep it tracked.
