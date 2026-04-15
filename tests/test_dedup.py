@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 from fileforge.analysis.dedup import hash_file, find_exact_duplicates
@@ -10,15 +10,16 @@ from fileforge.models import FileRecord
 
 
 def _make_record(path: Path) -> FileRecord:
-    """Create a FileRecord from an existing file path."""
+    """Create a FileRecord with sha256 pre-computed for dedup tests."""
     stat = path.stat()
     return FileRecord(
         path=path,
         name=path.name,
         extension=path.suffix,
         size_bytes=stat.st_size,
-        modified_at=datetime.fromtimestamp(stat.st_mtime),
-        created_at=datetime.fromtimestamp(stat.st_ctime),
+        modified_at=datetime.fromtimestamp(stat.st_mtime, tz=UTC),
+        created_at=datetime.fromtimestamp(stat.st_ctime, tz=UTC),
+        sha256=hash_file(path),
     )
 
 

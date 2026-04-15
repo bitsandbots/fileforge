@@ -35,6 +35,13 @@ def scan(
     cfg = load_config(config)
     scan_paths = [Path(d).expanduser() for d in dirs]
 
+    # Validate all paths before touching the filesystem
+    invalid = [p for p in scan_paths if not p.is_dir()]
+    if invalid:
+        for p in invalid:
+            console.print(f"[red]Error:[/red] not a directory: {p}")
+        raise typer.Exit(code=1)
+
     # Accumulate ignore patterns from config + .forgeignore in each root
     all_patterns = list(cfg.ignore.patterns)
     for root in scan_paths:

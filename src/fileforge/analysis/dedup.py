@@ -33,7 +33,7 @@ def find_exact_duplicates(records: list[FileRecord]) -> list[list[FileRecord]]:
     """Group FileRecords that are byte-for-byte identical.
 
     Files with the same SHA-256 hash are considered exact duplicates.
-    Records without a sha256 value are hashed on demand.
+    Records without a sha256 value (failed hashing) are silently skipped.
 
     Args:
         records: List of FileRecords to analyze.
@@ -45,7 +45,8 @@ def find_exact_duplicates(records: list[FileRecord]) -> list[list[FileRecord]]:
     by_hash: dict[str, list[FileRecord]] = defaultdict(list)
 
     for record in records:
-        digest = record.sha256 or hash_file(record.path)
-        by_hash[digest].append(record)
+        if record.sha256 is None:
+            continue  # failed to hash earlier; exclude from dedup
+        by_hash[record.sha256].append(record)
 
     return [group for group in by_hash.values() if len(group) > 1]

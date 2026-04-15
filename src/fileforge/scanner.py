@@ -93,8 +93,12 @@ class Scanner:
             if entry.is_dir(follow_symlinks=False):
                 yield from self._walk(root, entry, depth + 1, progress, task)
             elif entry.is_file(follow_symlinks=False):
+                try:
+                    record = self._make_record(entry)
+                except (FileNotFoundError, PermissionError, OSError):
+                    continue
                 progress.update(task, description=f"Scanning {entry.name}")
-                yield self._make_record(entry)
+                yield record
 
     def _should_ignore(self, path: Path) -> bool:
         """Return True if path matches any ignore pattern.
@@ -125,7 +129,7 @@ class Scanner:
         Returns:
             A FileRecord populated with filesystem metadata.
         """
-        from datetime import datetime
+        from datetime import UTC, datetime
 
         stat = path.stat()
         return FileRecord(
@@ -133,6 +137,6 @@ class Scanner:
             name=path.name,
             extension=path.suffix.lower(),
             size_bytes=stat.st_size,
-            modified_at=datetime.fromtimestamp(stat.st_mtime),
-            created_at=datetime.fromtimestamp(stat.st_ctime),
+            modified_at=datetime.fromtimestamp(stat.st_mtime, tz=UTC),
+            created_at=datetime.fromtimestamp(stat.st_ctime, tz=UTC),
         )
