@@ -75,6 +75,18 @@ class SessionDB:
                 size_bytes INTEGER NOT NULL,
                 sha256 TEXT
             );
+
+            CREATE TABLE IF NOT EXISTS job_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                job_id TEXT NOT NULL,
+                job_type TEXT NOT NULL,
+                triggered_at TEXT NOT NULL,
+                completed_at TEXT,
+                status TEXT NOT NULL DEFAULT 'running',
+                files_scanned INTEGER,
+                actions_taken INTEGER,
+                error_message TEXT
+            );
         """)
         self._conn.commit()
 
