@@ -178,6 +178,33 @@ class SessionDB:
             stale_reason=row["stale_reason"],
         )
 
+    def update_embedding(self, record_id: int, embedding: list[float]) -> None:
+        """Store embedding for a record.
+
+        Args:
+            record_id: The record's integer ID.
+            embedding: List of float values.
+        """
+        embedding_json = json.dumps(embedding)
+        self._conn.execute(
+            "UPDATE file_records SET embedding = ? WHERE id = ?",
+            (embedding_json, record_id),
+        )
+        self._conn.commit()
+
+    def query_records_without_embeddings(self, session_id: int) -> Iterator[FileRecord]:
+        """Yield all records for a session that don't have embeddings yet.
+
+        Args:
+            session_id: The session to query.
+        """
+        cur = self._conn.execute(
+            "SELECT * FROM file_records WHERE session_id = ? AND embedding IS NULL",
+            (session_id,),
+        )
+        for row in cur:
+            yield self._row_to_record(row)
+
     def close(self) -> None:
         """Close the database connection."""
         self._conn.close()
