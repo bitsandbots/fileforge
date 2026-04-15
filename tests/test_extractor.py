@@ -64,10 +64,17 @@ def test_extract_docx_error_returns_none(tmp_dir: Path) -> None:
     assert snippet is None
 
 
-def test_extract_pdf_returns_none_for_missing(tmp_dir: Path) -> None:
-    """PDF extraction on non-existent file is handled gracefully by dispatcher."""
-    # The dispatcher catches exceptions and returns None
-    fake_pdf = tmp_dir / "HARNESS_missing.pdf"
-    # Don't create the file — dispatcher should catch the FileNotFoundError
-    snippet = extract_snippet(fake_pdf, max_chars=2000)
+def test_extract_whitespace_only_returns_none(tmp_dir: Path) -> None:
+    """A file containing only whitespace returns None (no useful content)."""
+    f = tmp_dir / "HARNESS_blank.txt"
+    f.write_text("   \n\t\n   ")
+    snippet = extract_snippet(f, max_chars=2000)
+    assert snippet is None
+
+
+def test_extract_pdf_corrupt_returns_none(tmp_dir: Path) -> None:
+    """PDF extraction on a corrupt (non-PDF) file returns None gracefully."""
+    f = tmp_dir / "HARNESS_corrupt.pdf"
+    f.write_bytes(b"this is not a real pdf file")
+    snippet = extract_snippet(f, max_chars=2000)
     assert snippet is None

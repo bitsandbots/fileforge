@@ -13,7 +13,7 @@ The core problem it solves: file systems accumulate noise over time. Duplicate d
 - **Recursive scanning**: Walk one or more root directories, respecting depth limits and `.forgeignore` patterns.
 - **Content extraction**: Extract text snippets from `.txt`, `.md`, `.py`, `.pdf`, `.docx`, and 30+ additional formats. Used as context for AI classification.
 - **Exact deduplication**: SHA-256 hash comparison identifies identical files regardless of filename or location.
-- **AI classification**: Local Ollama LLM (`qwen3:4b`) reads a content snippet and assigns each file a nested category (e.g., `documents/finance/receipts`). Skippable with `--no-classify` for fast runs.
+- **AI classification**: Classification modules (`ai/classifier.py`, `extractor/`) are implemented and tested, but not yet wired into the scan command. Phase 1.5 will plumb `extract_snippet` + `classify_file` into the scan pipeline. Use `--no-classify` once that lands to skip it.
 - **Rich terminal report**: Scan summary with file counts, group sizes, and estimated reclaimable space.
 - **Session persistence**: SQLite database stores scan results so you can query and act on them later.
 

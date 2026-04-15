@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sqlite3
 from pathlib import Path
 
 import typer
@@ -56,8 +57,12 @@ def scan(
     # Set up session DB
     db_dir = Path(cfg.general.output_dir).expanduser()
     db_dir.mkdir(parents=True, exist_ok=True)
-    db = SessionDB(db_dir / "sessions.db")
-    session_id = db.create_session(scan_paths)
+    try:
+        db = SessionDB(db_dir / "sessions.db")
+        session_id = db.create_session(scan_paths)
+    except sqlite3.OperationalError as exc:
+        console.print(f"[red]Error:[/red] cannot open database: {exc}")
+        raise typer.Exit(code=1)
 
     try:
         # Scan and collect records
@@ -69,6 +74,7 @@ def scan(
         # Hash all records for dedup
         console.print(f"Hashing {len(records)} files...")
         hashed_records = []
+        hash_skipped = 0
         for record in records:
             if record.id is not None:
                 try:
@@ -76,8 +82,12 @@ def scan(
                     db.update_sha256(record.id, digest)
                     record = record.model_copy(update={"sha256": digest})
                 except (PermissionError, OSError):
-                    pass
+                    hash_skipped += 1
             hashed_records.append(record)
+        if hash_skipped:
+            console.print(
+                f"[yellow]Warning:[/yellow] {hash_skipped} file(s) skipped (permission denied)"
+            )
 
         # Detect exact duplicates
         dup_groups = find_exact_duplicates(hashed_records)

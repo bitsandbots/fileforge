@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 import ollama
+
+_log = logging.getLogger(__name__)
 
 _SYSTEM_PROMPT = """\
 You are a file classification assistant. Given a file's name, type, \
@@ -76,5 +79,8 @@ def classify_file(
             options={"temperature": 0.1},  # low temp for consistent output
         )
         return parse_category(response.message.content)
-    except (ollama.ResponseError, ollama.RequestError):
+    except (ollama.ResponseError, ollama.RequestError, ConnectionError, TimeoutError):
+        _log.warning(
+            "Ollama unavailable for %s; falling back to Uncategorized", path.name
+        )
         return "Uncategorized"

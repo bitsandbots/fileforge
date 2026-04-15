@@ -58,6 +58,25 @@ def test_update_record_sha256(tmp_dir: Path) -> None:
     assert fetched.sha256 == "abc123hash"
 
 
+def test_update_category(tmp_dir: Path) -> None:
+    """Updating category on a record persists the change."""
+    db = SessionDB(tmp_dir / "test.db")
+    session_id = db.create_session(scan_dirs=[tmp_dir])
+    record = FileRecord(
+        path=tmp_dir / "HARNESS_proposal.txt",
+        name="HARNESS_proposal.txt",
+        extension=".txt",
+        size_bytes=20,
+        modified_at=datetime(2024, 6, 1),
+        created_at=datetime(2024, 6, 1),
+    )
+    inserted = db.insert_record(session_id, record)
+    db.update_category(inserted.id, "Work/Consulting/Proposals")
+
+    fetched = db.get_record(inserted.id)
+    assert fetched.category == "Work/Consulting/Proposals"
+
+
 def test_list_records_for_session(tmp_dir: Path) -> None:
     """list_records returns all records for a session."""
     db = SessionDB(tmp_dir / "test.db")

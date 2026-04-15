@@ -30,3 +30,10 @@ def test_scan_reports_duplicate(tmp_dir: Path) -> None:
     result = runner.invoke(app, ["scan", str(tmp_dir), "--no-classify"])
     assert result.exit_code == 0
     assert "duplicate" in result.output.lower()
+
+
+def test_scan_nonexistent_directory_exits_with_error() -> None:
+    """scan command exits 1 with a clear message for a non-existent path."""
+    result = runner.invoke(app, ["scan", "/tmp/fileforge_harness_nonexistent_12345"])
+    assert result.exit_code == 1
+    assert "not a directory" in result.output

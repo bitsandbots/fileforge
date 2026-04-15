@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
+
+_log = logging.getLogger(__name__)
 
 from fileforge.extractor import docx as _docx
 from fileforge.extractor import pdf as _pdf
@@ -35,5 +38,5 @@ def extract_snippet(path: Path, max_chars: int = 2000) -> str | None:
     try:
         return module.extract(path, max_chars=max_chars)
     except Exception:
-        # Extraction failure is non-fatal — record gets metadata-only entry
+        _log.debug("Extraction failed for %s", path, exc_info=True)
         return None

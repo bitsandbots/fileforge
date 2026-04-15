@@ -66,6 +66,37 @@ def test_find_exact_duplicates_identifies_copies(tmp_dir: Path) -> None:
     assert unique not in group_paths
 
 
+def test_hash_file_zero_byte(tmp_dir: Path) -> None:
+    """Zero-byte file hashes to the known SHA-256 of empty input."""
+    empty = tmp_dir / "HARNESS_empty.bin"
+    empty.write_bytes(b"")
+    # SHA-256("") is the well-known constant
+    assert (
+        hash_file(empty)
+        == "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    )
+
+
+def test_find_exact_duplicates_skips_unhashed(tmp_dir: Path) -> None:
+    """Records with sha256=None are excluded from duplicate detection."""
+    from datetime import UTC, datetime
+
+    f = tmp_dir / "HARNESS_nohash.txt"
+    f.write_text("content")
+    stat = f.stat()
+    unhashed = FileRecord(
+        path=f,
+        name=f.name,
+        extension=".txt",
+        size_bytes=stat.st_size,
+        modified_at=datetime.fromtimestamp(stat.st_mtime, tz=UTC),
+        created_at=datetime.fromtimestamp(stat.st_ctime, tz=UTC),
+        sha256=None,
+    )
+    groups = find_exact_duplicates([unhashed, unhashed])
+    assert groups == []
+
+
 def test_find_exact_duplicates_no_duplicates(tmp_dir: Path) -> None:
     """Returns empty list when all files are unique."""
     for i in range(3):
