@@ -17,11 +17,13 @@ The core problem it solves: file systems accumulate noise over time. Duplicate d
 - **Rich terminal report**: Scan summary with file counts, group sizes, and estimated reclaimable space.
 - **Session persistence**: SQLite database stores scan results so you can query and act on them later.
 
-### Phase 2 — Planned
+### Phase 2 — Complete
 
-- Near-duplicate detection via embedding cosine similarity (`nomic-embed-text`)
-- Stale/outdated file flagging based on age and version patterns
-- Superseded version detection (e.g., `report_v1.docx` vs `report_v2.docx`)
+- **Near-duplicate detection** via `nomic-embed-text` embeddings + hnswlib + cosine similarity (configurable threshold, default 0.92)
+- **Stale file flagging** based on modification age (configurable stale_days, default 365) and junk patterns (Thumbs.db, *.tmp, *.swp, etc.)
+- **Version supersession detection** via pattern matching (e.g., `report_v1.docx` superseded by `report_v2.docx`)
+- Enabled with `--phase-2` flag; opt-in to avoid performance impact on first scan
+- All Phase 2 data persisted to database for later querying
 
 ### Phase 3 — Planned
 

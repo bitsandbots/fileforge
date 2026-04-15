@@ -28,6 +28,25 @@ pip install -e ".[dev]"
 
 The `[dev]` extra installs pytest, black, and ruff for local development.
 
+### Phase 2 Setup (Optional)
+
+If using Phase 2 features (near-duplicate detection via embeddings, stale file flagging, version detection):
+
+```bash
+# Pull the embedding model for Phase 2
+ollama pull nomic-embed-text
+
+# Install optional hnswlib dependency for similarity indexing
+pip install "fileforge[ann]"
+```
+
+Usage:
+
+```bash
+fileforge scan ~/Documents --phase-2
+# Shows stale files, version patterns, and near-duplicates
+```
+
 ### Verify installation
 
 ```bash
