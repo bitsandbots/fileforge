@@ -12,6 +12,8 @@ def print_scan_summary(
     console: Console,
     records: list[FileRecord],
     duplicate_groups: list[list[FileRecord]],
+    stale_records: list[FileRecord] | None = None,
+    near_dup_groups: list[list[FileRecord]] | None = None,
 ) -> None:
     """Print a plain-text summary of scan results to the console.
 
@@ -19,6 +21,8 @@ def print_scan_summary(
         console: Rich console for output.
         records: All scanned file records.
         duplicate_groups: Groups of duplicate files.
+        stale_records: Optional list of stale records (Phase 2).
+        near_dup_groups: Optional near-duplicate groups (Phase 2).
     """
     total_size = sum(r.size_bytes for r in records)
 
@@ -45,6 +49,20 @@ def print_scan_summary(
         console.print(table)
     else:
         console.print("[green]No exact duplicates found.[/]")
+
+    # Phase 2: Stale files section
+    if stale_records:
+        console.print("\n[bold]Stale Files[/bold]")
+        for record in stale_records:
+            console.print(f"  {record.name} — {record.stale_reason}")
+
+    # Phase 2: Near-duplicates section
+    if near_dup_groups:
+        console.print("\n[bold]Near-Duplicates (High Similarity)[/bold]")
+        for i, group in enumerate(near_dup_groups, 1):
+            console.print(f"  Group {i}: {len(group)} similar files")
+            for record in group:
+                console.print(f"    - {record.path}")
 
 
 def _fmt_bytes(n: int) -> str:

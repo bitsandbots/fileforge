@@ -30,6 +30,9 @@ def scan(
     no_classify: bool = typer.Option(
         False, "--no-classify", help="Skip AI classification (hash + dedup only)"
     ),
+    phase_2: bool = typer.Option(
+        False, "--phase-2", help="Enable Phase 2 analyses (stale, versions, near-dupes)"
+    ),
 ) -> None:
     """Scan directories, hash files, detect duplicates, and optionally classify."""
     # Console created inside function so CliRunner captures output in tests
@@ -112,8 +115,91 @@ def scan(
                 classified_records.append(record)
             hashed_records = classified_records
 
+        # Phase 2: Staleness detection
+        stale_records = []
+        if phase_2:
+            from fileforge.analysis.staleness import is_stale, matches_junk_pattern
+
+            console.print("Detecting stale files...")
+            for i, record in enumerate(hashed_records):
+                is_stale_age = is_stale(record, cfg.staleness.stale_days)
+                is_junk = matches_junk_pattern(record.name, cfg.staleness.junk_patterns)
+
+                if is_stale_age or is_junk:
+                    reason = (
+                        "older than threshold"
+                        if is_stale_age
+                        else "matches junk pattern"
+                    )
+                    if record.id is not None:
+                        db.update_stale(record.id, reason)
+                    hashed_records[i] = record.model_copy(
+                        update={"is_stale": True, "stale_reason": reason}
+                    )
+                    stale_records.append(hashed_records[i])
+
+        # Phase 2: Version supersession detection
+        if phase_2:
+            from fileforge.analysis.versions import find_superseded_versions
+
+            console.print("Detecting version patterns...")
+            superseded = find_superseded_versions(hashed_records)
+            for record in superseded:
+                if record.id is not None:
+                    db.update_stale(record.id, "superseded by newer version")
+                hashed_records = [
+                    (
+                        r.model_copy(
+                            update={"is_stale": True, "stale_reason": "superseded"}
+                        )
+                        if r.id == record.id
+                        else r
+                    )
+                    for r in hashed_records
+                ]
+                stale_records.append(
+                    record.model_copy(
+                        update={"is_stale": True, "stale_reason": "superseded"}
+                    )
+                )
+
+        # Phase 2: Near-duplicate detection via embeddings
+        near_dup_groups = []
+        if phase_2:
+            from fileforge.analysis.embeddings import (
+                find_near_duplicates,
+                generate_embedding,
+            )
+
+            console.print("Generating embeddings for near-duplicate detection...")
+            embedding_count = 0
+            for i, record in enumerate(hashed_records):
+                if record.embedding is None:
+                    snippet = extract_snippet(record.path, max_chars=500)
+                    if snippet:
+                        embedding = generate_embedding(snippet)
+                        if embedding and record.id is not None:
+                            db.update_embedding(record.id, embedding)
+                            hashed_records[i] = record.model_copy(
+                                update={"embedding": embedding}
+                            )
+                            embedding_count += 1
+
+            console.print(f"Generated {embedding_count} embeddings")
+
+            near_dup_groups = find_near_duplicates(
+                hashed_records,
+                threshold=cfg.duplicates.similarity_threshold,
+            )
+
         # Print report
-        print_scan_summary(console, hashed_records, dup_groups)
+        print_scan_summary(
+            console,
+            hashed_records,
+            dup_groups,
+            stale_records=stale_records if phase_2 else None,
+            near_dup_groups=near_dup_groups if phase_2 else None,
+        )
     finally:
         db.close()
 

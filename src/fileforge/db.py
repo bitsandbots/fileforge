@@ -178,6 +178,19 @@ class SessionDB:
             stale_reason=row["stale_reason"],
         )
 
+    def update_stale(self, record_id: int, reason: str) -> None:
+        """Mark a record as stale with a reason.
+
+        Args:
+            record_id: The record's integer ID.
+            reason: The stale reason (e.g., "older than threshold", "superseded").
+        """
+        self._conn.execute(
+            "UPDATE file_records SET is_stale = 1, stale_reason = ? WHERE id = ?",
+            (reason, record_id),
+        )
+        self._conn.commit()
+
     def update_embedding(self, record_id: int, embedding: list[float]) -> None:
         """Store embedding for a record.
 
