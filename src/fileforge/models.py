@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class FileRecord(BaseModel):
@@ -27,4 +27,33 @@ class FileRecord(BaseModel):
     is_stale: bool = False
     stale_reason: str | None = None
 
+    model_config = {"arbitrary_types_allowed": True}
+
+
+class ActionLog(BaseModel):
+    """Record of a file action taken (move, archive, delete)."""
+
+    id: int | None = None
+    session_id: int
+    record_id: int
+    action_type: str  # "move", "archive", "delete"
+    source_path: Path
+    destination_path: Path | None = None
+    archive_path: Path | None = None
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    dry_run: bool = False
+    status: str = "pending"  # pending, completed, failed, undone
+    error_message: str | None = None
+    model_config = {"arbitrary_types_allowed": True}
+
+
+class TrashEntry(BaseModel):
+    """Entry in the trash with recovery information."""
+
+    id: int | None = None
+    original_path: Path
+    trash_path: Path
+    trash_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    size_bytes: int
+    sha256: str | None = None
     model_config = {"arbitrary_types_allowed": True}

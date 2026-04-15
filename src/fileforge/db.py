@@ -52,6 +52,29 @@ class SessionDB:
                 is_stale INTEGER NOT NULL DEFAULT 0,
                 stale_reason TEXT
             );
+
+            CREATE TABLE IF NOT EXISTS action_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id INTEGER NOT NULL REFERENCES sessions(id),
+                record_id INTEGER NOT NULL REFERENCES file_records(id),
+                action_type TEXT NOT NULL,
+                source_path TEXT NOT NULL,
+                destination_path TEXT,
+                archive_path TEXT,
+                timestamp TEXT NOT NULL,
+                dry_run INTEGER NOT NULL DEFAULT 0,
+                status TEXT NOT NULL DEFAULT 'pending',
+                error_message TEXT
+            );
+
+            CREATE TABLE IF NOT EXISTS trash (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                original_path TEXT NOT NULL,
+                trash_path TEXT NOT NULL,
+                trash_at TEXT NOT NULL,
+                size_bytes INTEGER NOT NULL,
+                sha256 TEXT
+            );
         """)
         self._conn.commit()
 
@@ -217,6 +240,87 @@ class SessionDB:
         )
         for row in cur:
             yield self._row_to_record(row)
+
+    def log_action(
+        self,
+        session_id: int,
+        record_id: int,
+        action_type: str,
+        source_path: Path,
+        destination_path: Path | None = None,
+        archive_path: Path | None = None,
+        dry_run: bool = False,
+        status: str = "pending",
+        error_message: str | None = None,
+    ) -> int:
+        """Log a file action.
+
+        Args:
+            session_id: Session this action belongs to.
+            record_id: Record being acted upon.
+            action_type: Type of action ("move", "archive", "delete").
+            source_path: Source file path.
+            destination_path: Destination (for move/archive).
+            archive_path: Archive path (for archive action).
+            dry_run: Whether this was a dry-run preview.
+            status: Action status ("pending", "completed", "failed", "undone").
+            error_message: Error message if status is "failed".
+
+        Returns:
+            The new action log's ID.
+        """
+        cur = self._conn.execute(
+            """INSERT INTO action_logs
+               (session_id, record_id, action_type, source_path, destination_path,
+                archive_path, timestamp, dry_run, status, error_message)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                session_id,
+                record_id,
+                action_type,
+                str(source_path),
+                str(destination_path) if destination_path else None,
+                str(archive_path) if archive_path else None,
+                datetime.now(UTC).isoformat(),
+                1 if dry_run else 0,
+                status,
+                error_message,
+            ),
+        )
+        self._conn.commit()
+        return cur.lastrowid
+
+    def add_to_trash(
+        self,
+        original_path: Path,
+        trash_path: Path,
+        size_bytes: int,
+        sha256: str | None = None,
+    ) -> int:
+        """Add file to trash.
+
+        Args:
+            original_path: Original file location.
+            trash_path: Where file was moved in trash.
+            size_bytes: File size.
+            sha256: SHA-256 hash for recovery verification.
+
+        Returns:
+            The new trash entry's ID.
+        """
+        cur = self._conn.execute(
+            """INSERT INTO trash (original_path, trash_path, trash_at, size_bytes, sha256)
+               VALUES (?, ?, ?, ?, ?)""",
+            (
+                str(original_path),
+                str(trash_path),
+                datetime.now(UTC).isoformat(),
+                size_bytes,
+                sha256,
+            ),
+        )
+        self._conn.commit()
+        return cur.lastrowid
 
     def close(self) -> None:
         """Close the database connection."""
