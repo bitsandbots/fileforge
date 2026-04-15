@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
+import webbrowser
 from pathlib import Path
 
 import typer
@@ -32,6 +33,12 @@ def scan(
     ),
     phase_2: bool = typer.Option(
         False, "--phase-2", help="Enable Phase 2 analyses (stale, versions, near-dupes)"
+    ),
+    interactive: bool = typer.Option(
+        False, "--interactive", help="Launch interactive HTML report"
+    ),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Preview actions without executing"
     ),
 ) -> None:
     """Scan directories, hash files, detect duplicates, and optionally classify."""
@@ -200,6 +207,48 @@ def scan(
             stale_records=stale_records if phase_2 else None,
             near_dup_groups=near_dup_groups if phase_2 else None,
         )
+
+        # Dry-run preview: show what actions would be taken
+        if dry_run:
+            console.print(
+                "\n[yellow][DRY RUN][/yellow] The following actions would be taken:"
+            )
+            console.print("[dim](No files will be modified)[/dim]\n")
+
+            preview_count = 0
+            for record in hashed_records:
+                if record.is_duplicate or record.is_stale:
+                    action = (
+                        "SKIP (duplicate)"
+                        if record.is_duplicate
+                        else f"SKIP ({record.stale_reason})"
+                    )
+                    console.print(f"  {record.name:40s} → {action}")
+                    preview_count += 1
+
+            if preview_count == 0:
+                console.print("  (No files marked for action)")
+
+            console.print(
+                f"\n[dim]Total files that would be affected: {preview_count}[/dim]"
+            )
+
+        # Interactive mode: generate and open HTML report
+        if interactive:
+            from fileforge.report.html_generator import generate_html_report
+
+            report_path = Path(cfg.general.output_dir).expanduser() / "report.html"
+            generate_html_report(hashed_records, report_path)
+
+            console.print(f"[green]Report generated:[/green] {report_path}")
+            console.print("[cyan]Opening in browser...[/cyan]")
+
+            try:
+                webbrowser.open(f"file://{report_path.absolute()}")
+            except Exception as e:
+                console.print(f"[yellow]Could not open browser:[/yellow] {e}")
+                console.print(f"[cyan]Open manually:[/cyan] {report_path.absolute()}")
+
     finally:
         db.close()
 
