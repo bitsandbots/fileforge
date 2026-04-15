@@ -482,3 +482,258 @@ Scan Summary — 1,247 files in 3 directories
 ```
 
 Rich markup and color are applied automatically based on the terminal's color support.
+
+---
+
+## Phase 3: File Actions and Reports
+
+### `fileforge.actions.mover`
+
+#### `move_file()`
+
+```python
+def move_file(source: Path, destination: Path, create_dirs: bool = True) -> None
+```
+
+Moves a file to a destination path, creating parent directories if needed.
+
+**Args:**
+
+- `source`: Path to the file to move.
+- `destination`: Destination path (full path including filename).
+- `create_dirs`: If `True` (default), creates parent directories if they don't exist.
+
+**Raises:**
+
+- `FileNotFoundError` — if source does not exist.
+- `OSError` — if the move operation fails (permission denied, disk full, etc.).
+
+---
+
+### `fileforge.actions.archiver`
+
+#### `create_archive()`
+
+```python
+def create_archive(source: Path, archive_path: Path) -> None
+```
+
+Creates a gzip-compressed tar archive of a file or directory.
+
+**Args:**
+
+- `source`: Path to file or directory to archive.
+- `archive_path`: Path where the `.tar.gz` archive will be written.
+
+**Raises:**
+
+- `FileNotFoundError` — if source does not exist.
+- `OSError` — if archive creation fails.
+
+---
+
+#### `extract_archive()`
+
+```python
+def extract_archive(archive_path: Path, destination: Path) -> None
+```
+
+Extracts a `.tar.gz` archive to a destination directory.
+
+**Args:**
+
+- `archive_path`: Path to the `.tar.gz` file.
+- `destination`: Directory where contents will be extracted.
+
+**Raises:**
+
+- `FileNotFoundError` — if archive does not exist.
+- `OSError` — if extraction fails.
+
+---
+
+### `fileforge.actions.trash`
+
+#### `move_to_trash()`
+
+```python
+def move_to_trash(source: Path, trash_dir: Path) -> Path
+```
+
+Moves a file to a trash directory with date-based organization (YYYY/MM/DD subdirectories).
+
+**Args:**
+
+- `source`: Path to the file to move to trash.
+- `trash_dir`: Root trash directory (e.g., `~/.fileforge/trash`).
+
+**Returns:** `Path` — the destination path in trash.
+
+**Behavior:**
+
+Files are organized as `trash_dir/YYYY/MM/DD/filename`. Parent directories are created as needed.
+
+**Raises:**
+
+- `FileNotFoundError` — if source does not exist.
+- `OSError` — if the move fails.
+
+---
+
+#### `restore_from_trash()`
+
+```python
+def restore_from_trash(trash_path: Path, original_path: Path) -> None
+```
+
+Restores a file from trash back to its original location.
+
+**Args:**
+
+- `trash_path`: Path to the file in the trash directory.
+- `original_path`: Original file path to restore to.
+
+**Raises:**
+
+- `FileNotFoundError` — if trash_path does not exist.
+- `OSError` — if restoration fails.
+
+---
+
+#### `empty_trash()`
+
+```python
+def empty_trash(trash_dir: Path, older_than_days: int = 30) -> int
+```
+
+Permanently deletes files in trash that are older than a specified number of days.
+
+**Args:**
+
+- `trash_dir`: Root trash directory.
+- `older_than_days`: Files with mtime older than this many days are deleted. Default: 30 days.
+
+**Returns:** `int` — number of files deleted.
+
+**Behavior:**
+
+Walks the trash directory tree, checks file mtime, and deletes files older than the threshold. Empty directories are left in place.
+
+---
+
+### `fileforge.report.html_generator`
+
+#### `generate_html_report()`
+
+```python
+def generate_html_report(
+    records: list[FileRecord],
+    output_path: Path,
+    config: FileForgeConfig | None = None,
+) -> None
+```
+
+Generates an interactive HTML report with per-file action buttons (move, archive, delete).
+
+**Args:**
+
+- `records`: List of `FileRecord` objects to include in the report.
+- `output_path`: Path where the HTML file will be written.
+- `config`: Optional `FileForgeConfig` for templating. If not provided, defaults are used.
+
+**Returns:** `None`. HTML file is written to `output_path`.
+
+**Behavior:**
+
+Renders a single-page HTML report with:
+- File list table showing path, size, category, and duplicate/stale/superseded flags
+- Action buttons for each file (move, archive, delete, restore from trash)
+- Search/filter interface
+- Summary statistics
+
+**Raises:**
+
+- `OSError` — if the output file cannot be written.
+
+---
+
+## Phase 3: Dry-Run and Action Logging
+
+### `fileforge.actions.logger`
+
+#### `ActionLog` (dataclass)
+
+```python
+@dataclass
+class ActionLog:
+    id: str
+    session_id: str
+    timestamp: datetime
+    action_type: str  # "move", "archive", "delete", "restore"
+    source_path: Path
+    destination_path: Path | None
+    status: str  # "pending", "success", "failed"
+    error_message: str | None = None
+```
+
+Represents a single file action (move, archive, delete, restore) with its execution status.
+
+---
+
+#### `log_action()`
+
+```python
+def log_action(
+    db: SessionDB,
+    session_id: str,
+    action_type: str,
+    source_path: Path,
+    destination_path: Path | None = None,
+    status: str = "pending",
+    error_message: str | None = None,
+) -> str
+```
+
+Records a file action to the database for undo support and audit trail.
+
+**Args:**
+
+- `db`: Open `SessionDB` instance.
+- `session_id`: Session ID to associate with the action.
+- `action_type`: Type of action: `"move"`, `"archive"`, `"delete"`, or `"restore"`.
+- `source_path`: Original file path.
+- `destination_path`: New location (for move/archive) or `None` (for delete/restore).
+- `status`: Initial status (`"pending"`, `"success"`, `"failed"`).
+- `error_message`: Optional error details if status is `"failed"`.
+
+**Returns:** `str` — action ID (UUID).
+
+**Behavior:**
+
+Inserts a new row into the `action_logs` table. Used by the interactive report to track what the user has requested.
+
+---
+
+#### `undo_action()`
+
+```python
+def undo_action(db: SessionDB, action_id: str) -> None
+```
+
+Reverses the effect of a previously logged action.
+
+**Args:**
+
+- `db`: Open `SessionDB` instance.
+- `action_id`: ID of the action to undo.
+
+**Behavior:**
+
+- For `"move"` or `"archive"` actions: moves the file back to its source.
+- For `"delete"` actions: restores from trash if still available.
+- For `"restore"` actions: moves back to trash.
+
+**Raises:**
+
+- `ValueError` — if action_id not found.
+- `OSError` — if the file can no longer be found or moved.

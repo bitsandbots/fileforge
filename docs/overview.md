@@ -25,11 +25,13 @@ The core problem it solves: file systems accumulate noise over time. Duplicate d
 - Enabled with `--phase-2` flag; opt-in to avoid performance impact on first scan
 - All Phase 2 data persisted to database for later querying
 
-### Phase 3 — Planned
+### Phase 3 — Complete
 
-- Interactive HTML report with per-file move/archive/delete actions
-- Dry-run mode with explicit preview before any file system changes
-- Trash staging with full undo support
+- **Interactive HTML reports** with per-file action buttons (move, archive, delete)
+- **Dry-run mode** with action preview showing affected files before execution
+- **Trash staging** with date-based organization and permanent cleanup after 30 days
+- **Undo support** via action logs persisted in database
+- Enabled with `--interactive` flag (launches report in browser) and `--dry-run` (preview-only)
 
 ### Phase 4 — Planned
 

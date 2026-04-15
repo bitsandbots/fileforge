@@ -47,6 +47,27 @@ fileforge scan ~/Documents --phase-2
 # Shows stale files, version patterns, and near-duplicates
 ```
 
+### Phase 3 Setup (Optional)
+
+If using interactive HTML reports and file actions:
+
+```bash
+pip install "fileforge[ui]"  # Installs Jinja2 for HTML templating
+```
+
+Usage:
+
+```bash
+# Interactive mode with HTML report
+fileforge scan ~/Documents --phase-2 --interactive
+
+# Preview actions without executing
+fileforge scan ~/Documents --phase-2 --dry-run
+
+# All three phases together
+fileforge scan ~/Documents --interactive
+```
+
 ### Verify installation
 
 ```bash
