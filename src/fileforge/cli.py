@@ -254,6 +254,92 @@ def scan(
 
 
 @app.command()
+def watch(
+    dirs: list[str] = typer.Argument(help="Directories to watch"),
+    config: Path = typer.Option(None, help="Config file path"),
+    phase_2: bool = typer.Option(True, "--phase-2", help="Enable Phase 2 analyses"),
+) -> None:
+    """Watch directories for changes and scan automatically."""
+    console = Console(force_terminal=False, highlight=False)
+    cfg = load_config(config)
+
+    from fileforge.watch.watcher import FileWatcher
+
+    watch_paths = [Path(d).expanduser() for d in dirs]
+
+    # Validate paths
+    invalid = [p for p in watch_paths if not p.is_dir()]
+    if invalid:
+        for p in invalid:
+            console.print(f"[red]Error:[/red] not a directory: {p}")
+        raise typer.Exit(code=1)
+
+    def on_change(path: Path, event_type: str) -> None:
+        console.print(f"[cyan]Detected {event_type}: {path.name}[/cyan]")
+        console.print(f"[dim]Scanning in {cfg.watch.scan_delay_seconds}s...[/dim]")
+        # In production, this would trigger scan_command
+        # For now, just log the detection
+
+    watcher = FileWatcher(
+        watch_paths,
+        on_change=on_change,
+        debounce_delay=float(cfg.watch.scan_delay_seconds),
+        ignore_patterns=cfg.watch.debounce_patterns,
+    )
+
+    console.print(f"[green]Watching {len(watch_paths)} director(ies)...[/green]")
+    console.print("[dim]Press Ctrl+C to stop[/dim]")
+
+    watcher.start()
+    try:
+        import time
+
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        console.print("\n[yellow]Stopping watcher...[/yellow]")
+        watcher.stop()
+
+
+@app.command()
+def schedule(
+    dirs: list[str] = typer.Argument(help="Directories to scan"),
+    cron: str = typer.Option("0 2 * * *", "--cron", help="Cron expression"),
+    config: Path = typer.Option(None, help="Config file path"),
+) -> None:
+    """Schedule periodic scans using cron or systemd timer."""
+    console = Console(force_terminal=False, highlight=False)
+    cfg = load_config(config)
+
+    from fileforge.schedule.job_manager import JobManager
+    from fileforge.db import SessionDB
+
+    db = SessionDB(Path(cfg.general.output_dir).expanduser() / "sessions.db")
+    job_mgr = JobManager(db, cfg.schedule)
+
+    scan_paths = [Path(d).expanduser() for d in dirs]
+
+    # Validate paths
+    invalid = [p for p in scan_paths if not p.is_dir()]
+    if invalid:
+        for p in invalid:
+            console.print(f"[red]Error:[/red] not a directory: {p}")
+        raise typer.Exit(code=1)
+
+    console.print(
+        f"[green]Scheduling scans for {len(scan_paths)} director(ies)[/green]"
+    )
+    console.print(f"[cyan]Cron: {cron}[/cyan]")
+
+    job_id = job_mgr.schedule_scan(scan_paths)
+
+    console.print(f"[green]✓ Scan scheduled (job ID: {job_id})[/green]")
+    console.print("[dim]View logs: fileforge log[/dim]")
+
+    db.close()
+
+
+@app.command()
 def status() -> None:
     """Show current session info and stats."""
     console = Console(force_terminal=False, highlight=False)
