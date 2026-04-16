@@ -574,6 +574,214 @@ def schedule(
 
 
 @app.command()
+def dupes(
+    dirs: list[str] = typer.Argument(help="Directories to scan for duplicates"),
+    config: Path = typer.Option(None, help="Config file path"),
+    delete: bool = typer.Option(
+        False, "--delete", help="Permanently delete duplicates"
+    ),
+    move: bool = typer.Option(
+        False, "--move", help="Move duplicates to duplicates folder"
+    ),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Preview without executing"),
+    duplicates_dir: Path = typer.Option(None, help="Duplicates folder for --move"),
+) -> None:
+    """Find and handle duplicate files."""
+    # Console created inside function so CliRunner captures output in tests
+    console = Console(force_terminal=False, highlight=False)
+
+    # Validate conflicting flags
+    if delete and move:
+        console.print("[red]Error:[/red] cannot use both --delete and --move")
+        raise typer.Exit(code=1)
+
+    cfg = load_config(config)
+    scan_paths = [Path(d).expanduser() for d in dirs]
+
+    # Validate all paths before touching the filesystem
+    invalid = [p for p in scan_paths if not p.is_dir()]
+    if invalid:
+        for p in invalid:
+            console.print(f"[red]Error:[/red] not a directory: {p}")
+        raise typer.Exit(code=1)
+
+    # Import inside function for lazy loading
+    from fileforge.actions.mover import move_file
+
+    # Set up session DB
+    db_dir = Path(cfg.general.output_dir).expanduser()
+    db_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        db = SessionDB(db_dir / "sessions.db")
+        session_id = db.create_session(scan_paths)
+    except sqlite3.OperationalError as exc:
+        console.print(f"[red]Error:[/red] cannot open database: {exc}")
+        raise typer.Exit(code=1)
+
+    try:
+        # Scan and collect records
+        all_patterns = list(cfg.ignore.patterns)
+        for root in scan_paths:
+            forgeignore = root / ".forgeignore"
+            if forgeignore.exists():
+                for line in forgeignore.read_text().splitlines():
+                    line = line.strip()
+                    if line and not line.startswith("#"):
+                        all_patterns.append(line)
+        scanner = Scanner(ignore_patterns=all_patterns, max_depth=cfg.general.max_depth)
+
+        records = []
+        for record in scanner.scan(scan_paths):
+            inserted = db.insert_record(session_id, record)
+            records.append(inserted)
+
+        # Hash all records for dedup
+        console.print(f"Hashing {len(records)} files...")
+        hashed_records = []
+        hash_skipped = 0
+        for record in records:
+            if record.id is not None:
+                try:
+                    digest = hash_file(record.path)
+                    db.update_sha256(record.id, digest)
+                    record = record.model_copy(update={"sha256": digest})
+                except (PermissionError, OSError):
+                    hash_skipped += 1
+            hashed_records.append(record)
+        if hash_skipped:
+            console.print(
+                f"[yellow]Warning:[/yellow] {hash_skipped} file(s) skipped (permission denied)"
+            )
+
+        # Detect exact duplicates
+        dup_groups = find_exact_duplicates(hashed_records)
+
+        if not dup_groups:
+            console.print("[green]No duplicates found.[/green]")
+            return
+
+        # Calculate stats
+        total_dupes = sum(len(group) - 1 for group in dup_groups)  # -1 for original
+        total_size = sum(
+            group[0].size_bytes * (len(group) - 1)
+            for group in dup_groups
+            if group[0].size_bytes
+        )
+
+        console.print(f"\n[cyan]Found {len(dup_groups)} duplicate groups[/cyan]")
+        console.print(f"[cyan]Total duplicate files: {total_dupes}[/cyan]")
+        console.print(f"[cyan]Space recoverable: {total_size:,} bytes[/cyan]\n")
+
+        # Print duplicate groups
+        for i, group in enumerate(dup_groups, 1):
+            console.print(f"[bold]Group {i}:[/bold] ({len(group)} files)")
+            for j, record in enumerate(group):
+                marker = (
+                    "[green]ORIGINAL[/green]"
+                    if j == 0
+                    else "[yellow]DUPLICATE[/yellow]"
+                )
+                console.print(f"  {marker} {record.path}")
+            console.print()
+
+        # Default: just show report, no actions
+        if not delete and not move:
+            console.print("[dim]Run with --delete or --move to take action[/dim]")
+            return
+
+        # Build list of duplicates to process (all except first in each group)
+        duplicates_to_process: list[tuple[FileRecord, str]] = []  # (record, action)
+        for group in dup_groups:
+            for i, record in enumerate(group):
+                if i > 0:  # First file is original, rest are duplicates
+                    action = "delete" if delete else "move"
+                    duplicates_to_process.append((record, action))
+
+        # Dry-run: just print what would happen
+        if dry_run:
+            console.print(
+                "\n[yellow][DRY RUN][/yellow] The following actions would be taken:"
+            )
+            console.print("[dim](No files will be modified)[/dim]\n")
+
+            for record, action in duplicates_to_process:
+                if action == "delete":
+                    console.print(f"  [red]DELETE[/red] {record.path}")
+                else:
+                    dest = (duplicates_dir or Path.home() / "Duplicates") / record.name
+                    console.print(f"  [yellow]MOVE[/yellow] {record.path} -> {dest}")
+
+            console.print(
+                f"\n[dim]Total files affected: {len(duplicates_to_process)}[/dim]"
+            )
+            return
+
+        # Execute actions
+        console.print(f"\nProcessing {len(duplicates_to_process)} duplicate files...")
+
+        # Set up default duplicates directory for --move
+        if move and duplicates_dir is None:
+            duplicates_dir = Path.home() / "Duplicates"
+
+        deleted_count = 0
+        moved_count = 0
+        error_count = 0
+
+        for record, action in duplicates_to_process:
+            try:
+                if action == "delete":
+                    # Permanently delete
+                    record.path.unlink()
+                    db.log_action(
+                        session_id=session_id,
+                        record_id=record.id or 0,
+                        action_type="delete_duplicate",
+                        source_path=record.path,
+                        destination_path=None,
+                        status="completed",
+                    )
+                    deleted_count += 1
+                else:
+                    # Move to duplicates folder
+                    dest = duplicates_dir / record.name
+                    final_dest = move_file(record.path, dest, create_dirs=True)
+                    db.log_action(
+                        session_id=session_id,
+                        record_id=record.id or 0,
+                        action_type="move_duplicate",
+                        source_path=record.path,
+                        destination_path=final_dest,
+                        status="completed",
+                    )
+                    moved_count += 1
+
+            except (FileNotFoundError, PermissionError, OSError) as e:
+                console.print(f"[red]Error processing {record.path.name}:[/red] {e}")
+                db.log_action(
+                    session_id=session_id,
+                    record_id=record.id or 0,
+                    action_type=action,
+                    source_path=record.path,
+                    destination_path=None,
+                    status="failed",
+                    error_message=str(e),
+                )
+                error_count += 1
+
+        # Print summary
+        console.print("\n[green]Duplicate handling complete![/green]")
+        if delete:
+            console.print(f"  Deleted: {deleted_count}")
+        else:
+            console.print(f"  Moved: {moved_count}")
+        if error_count:
+            console.print(f"  [red]Errors: {error_count}[/red]")
+
+    finally:
+        db.close()
+
+
+@app.command()
 def status() -> None:
     """Show current session info and stats."""
     console = Console(force_terminal=False, highlight=False)
