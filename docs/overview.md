@@ -33,10 +33,13 @@ The core problem it solves: file systems accumulate noise over time. Duplicate d
 - **Undo support** via action logs persisted in database
 - Enabled with `--interactive` flag (launches report in browser) and `--dry-run` (preview-only)
 
-### Phase 4 — Planned
+### Phase 4 — Complete
 
-- Watch mode for continuous background organization
-- Scheduled scan jobs via systemd/Task Scheduler
+- **Watch mode** with filesystem event monitoring (continuous background scanning)
+- **Scheduled scans** via cron or systemd timers (Linux) / Task Scheduler (Windows)
+- **Job audit trail** tracking all scheduled executions, file counts, and actions
+- **Auto-act mode** for unattended organization (with safety checks)
+- Enabled with `fileforge watch` and `fileforge schedule` commands
 
 ### Phase 5 — Planned
 

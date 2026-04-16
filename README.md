@@ -38,6 +38,26 @@ fileforge organize ~/Downloads
 fileforge dupes ~/Documents
 ```
 
+## Background Organization (Phase 4)
+
+FileForge can run continuously in the background:
+
+### Watch Mode
+Monitor directories and scan on changes:
+```bash
+fileforge watch ~/Documents ~/Downloads --phase-2
+```
+
+### Scheduled Scans
+Run daily scans automatically:
+```bash
+# Schedule a daily 2 AM scan
+fileforge schedule ~/Documents --cron "0 2 * * *"
+
+# Or use systemd (Linux)
+bash src/fileforge/systemd/install.sh
+```
+
 See `fileforge --help` or the [docs/](docs/) directory for full usage.
 
 ## Configuration

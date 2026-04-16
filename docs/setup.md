@@ -68,6 +68,38 @@ fileforge scan ~/Documents --phase-2 --dry-run
 fileforge scan ~/Documents --interactive
 ```
 
+### Phase 4 Setup (Optional)
+
+Enable continuous background organization:
+
+**Watch mode (immediate scans on file changes):**
+```bash
+fileforge watch ~/Documents ~/Downloads --phase-2
+```
+
+**Scheduled scans (daily at 2 AM):**
+```bash
+fileforge schedule ~/Documents --cron "0 2 * * *"
+
+# Or use systemd timer (Linux)
+bash src/fileforge/systemd/install.sh
+```
+
+**Systemd integration (Linux):**
+
+For automatic daily scans at 2 AM, install the systemd timer:
+
+```bash
+cd /path/to/fileforge
+bash src/fileforge/systemd/install.sh
+
+# Check status
+systemctl --user status fileforge-scan.timer
+
+# View logs
+journalctl --user -u fileforge-scan.service
+```
+
 ### Verify installation
 
 ```bash
