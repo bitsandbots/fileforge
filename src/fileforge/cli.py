@@ -334,10 +334,19 @@ def organize(
         for root in scan_paths:
             forgeignore = root / ".forgeignore"
             if forgeignore.exists():
-                for line in forgeignore.read_text().splitlines():
-                    line = line.strip()
-                    if line and not line.startswith("#"):
-                        all_patterns.append(line)
+                try:
+                    for line in forgeignore.read_text().splitlines():
+                        line = line.strip()
+                        if line and not line.startswith("#"):
+                            all_patterns.append(line)
+                except PermissionError:
+                    console.print(
+                        f"[yellow]Warning:[/yellow] cannot read {forgeignore}, skipping"
+                    )
+                except UnicodeDecodeError:
+                    console.print(
+                        f"[yellow]Warning:[/yellow] {forgeignore} is not valid UTF-8, skipping"
+                    )
         scanner = Scanner(ignore_patterns=all_patterns, max_depth=cfg.general.max_depth)
 
         records = []
@@ -690,10 +699,19 @@ def dupes(
         for root in scan_paths:
             forgeignore = root / ".forgeignore"
             if forgeignore.exists():
-                for line in forgeignore.read_text().splitlines():
-                    line = line.strip()
-                    if line and not line.startswith("#"):
-                        all_patterns.append(line)
+                try:
+                    for line in forgeignore.read_text().splitlines():
+                        line = line.strip()
+                        if line and not line.startswith("#"):
+                            all_patterns.append(line)
+                except PermissionError:
+                    console.print(
+                        f"[yellow]Warning:[/yellow] cannot read {forgeignore}, skipping"
+                    )
+                except UnicodeDecodeError:
+                    console.print(
+                        f"[yellow]Warning:[/yellow] {forgeignore} is not valid UTF-8, skipping"
+                    )
         scanner = Scanner(ignore_patterns=all_patterns, max_depth=cfg.general.max_depth)
 
         records = []
