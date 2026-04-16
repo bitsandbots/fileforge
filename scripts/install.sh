@@ -21,7 +21,6 @@ info "Checking Python version..."
 PYTHON=""
 for candidate in python3.13 python3.12 python3.11 python3 python; do
     if command -v "$candidate" &>/dev/null; then
-        version=$("$candidate" -c 'import sys; print(sys.version_info[:2])')
         major=$("$candidate" -c 'import sys; print(sys.version_info.major)')
         minor=$("$candidate" -c 'import sys; print(sys.version_info.minor)')
         if [[ "$major" -ge 3 && "$minor" -ge 11 ]]; then
@@ -32,7 +31,7 @@ for candidate in python3.13 python3.12 python3.11 python3 python; do
 done
 
 if [[ -z "$PYTHON" ]]; then
-    fail "Python 3.11 or newer is required. Found: $("python3" --version 2>/dev/null || echo 'none'). Install from https://python.org"
+    fail "Python 3.11 or newer is required. Found: $(python3 --version 2>/dev/null || echo 'none'). Install from https://python.org"
 fi
 
 PYTHON_VERSION=$("$PYTHON" --version)
@@ -45,15 +44,43 @@ if ! "$PYTHON" -m pip --version &>/dev/null; then
     fail "pip is not available for $PYTHON. Install it with: $PYTHON -m ensurepip --upgrade"
 fi
 
-PIP_VERSION=$("$PYTHON" -m pip --version | awk '{print $1, $2}')
+PIP_VERSION=$("$PYTHON" -m pip version | awk '{print $1, $2}')
 success "Found $PIP_VERSION"
 
 # ── Install in editable mode with dev deps ────────────────────────────────────
-info "Installing FileForge in editable mode with dev dependencies..."
+info "Installing FileForge in editable mode..."
 
 "$PYTHON" -m pip install -e ".[dev]"
 
-success "FileForge installed"
+success "Core package installed"
+
+# ── Optional extras ────────────────────────────────────────────────────────────
+info "Checking optional extras..."
+
+# ANN (approximate nearest neighbor for large datasets)
+if "$PYTHON" -c "import hnswlib" 2>/dev/null; then
+    success "hnswlib already installed (ANN support)"
+else
+    read -p "Install hnswlib for large-scale similarity search? [y/N] " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        "$PYTHON" -m pip install "hnswlib>=0.8"
+        success "hnswlib installed"
+    fi
+fi
+
+# OCR support
+if "$PYTHON" -c "import pytesseract" 2>/dev/null; then
+    success "pytesseract already installed (OCR support)"
+else
+    read -p "Install pytesseract for image OCR? [y/N] " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        "$PYTHON" -m pip install "pytesseract>=0.3"
+        warn "Note: Tesseract binary must be installed separately"
+        success "pytesseract installed"
+    fi
+fi
 
 # ── Ollama check ──────────────────────────────────────────────────────────────
 info "Checking Ollama..."
@@ -63,6 +90,25 @@ if command -v ollama &>/dev/null; then
     if ollama list &>/dev/null 2>&1; then
         OLLAMA_RUNNING=true
         success "Ollama is running"
+
+        # Check for required models
+        if ! ollama list | grep -q "qwen3:4b"; then
+            warn "qwen3:4b model not found"
+            read -p "Pull qwen3:4b for classification? [Y/n] " -n 1 -r
+            echo
+            if [[ ! $REPLY =~ ^[Nn]$ ]]; then
+                ollama pull qwen3:4b
+            fi
+        fi
+
+        if ! ollama list | grep -q "nomic-embed-text"; then
+            warn "nomic-embed-text model not found"
+            read -p "Pull nomic-embed-text for embeddings? [Y/n] " -n 1 -r
+            echo
+            if [[ ! $REPLY =~ ^[Nn]$ ]]; then
+                ollama pull nomic-embed-text
+            fi
+        fi
     else
         warn "Ollama is installed but not running"
     fi
@@ -75,10 +121,37 @@ if [[ "$OLLAMA_RUNNING" == "false" ]]; then
     printf "${YELLOW}Ollama setup required:${RESET}\n"
     printf "  1. Install Ollama:  https://ollama.com/download\n"
     printf "  2. Start service:   ollama serve\n"
-    printf "  3. Pull a model:    ollama pull llama3\n"
+    printf "  3. Pull models:     ollama pull qwen3:4b\n"
+    printf "                     ollama pull nomic-embed-text\n"
+    printf "\n"
     printf "  FileForge will work without Ollama for non-AI operations,\n"
     printf "  but AI-assisted classification requires a running Ollama instance.\n"
     printf "\n"
+fi
+
+# ── Verify installation ───────────────────────────────────────────────────────
+info "Verifying installation..."
+
+if ! "$PYTHON" -c "import fileforge" 2>/dev/null; then
+    fail "Import test failed. Check the installation."
+fi
+
+if ! "$PYTHON" -m fileforge --version &>/dev/null; then
+    warn "CLI entry point not found in PATH"
+fi
+
+success "Import test passed"
+
+# ── Run tests ─────────────────────────────────────────────────────────────────
+read -p "Run test suite to verify? [Y/n] " -n 1 -r
+echo
+if [[ ! $REPLY =~ ^[Nn]$ ]]; then
+    info "Running tests..."
+    if "$PYTHON" -m pytest -q; then
+        success "All tests passed"
+    else
+        warn "Some tests failed. Check the output above."
+    fi
 fi
 
 # ── Done ──────────────────────────────────────────────────────────────────────
@@ -89,6 +162,12 @@ printf "  ${BOLD}Quick start:${RESET}\n"
 printf "    fileforge --help\n"
 printf "    fileforge scan ~/Downloads --dry-run\n"
 printf "\n"
-printf "  ${BOLD}Run tests:${RESET}\n"
-printf "    python -m pytest -q\n"
+printf "  ${BOLD}Documentation:${RESET}\n"
+printf "    docs/overview.md    — Project overview\n"
+printf "    docs/setup.md       — Detailed usage guide\n"
+printf "    docs/architecture.md — System design\n"
+printf "\n"
+printf "  ${BOLD}Development:${RESET}\n"
+printf "    python -m pytest -q    — Run tests\n"
+printf "    bash scripts/check.sh  — Lint + format\n"
 printf "\n"

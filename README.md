@@ -8,14 +8,21 @@ AI-powered file organizer using local Ollama inference — no cloud, no subscrip
 
 ## What it does
 
-- Scans directories and classifies files using local AI (Ollama) or rule-based heuristics
-- Detects and reports duplicate files by content hash and semantic similarity
-- Moves or renames files according to configurable rules, with a trash-safe undo path
-- Runs fully offline — no data leaves your machine
+- **Scans** directories and classifies files using local AI (Ollama) or rule-based heuristics
+- **Detects** duplicates by content hash and semantic similarity
+- **Organizes** files into category folders automatically
+- **Automates** with watch mode and scheduled scans
+- **Runs offline** — no data leaves your machine
 
 ## Install
 
-PyPI release coming soon. For now, install from source:
+### From PyPI (coming soon)
+
+```bash
+pip install fileforge
+```
+
+### From source
 
 ```bash
 git clone https://github.com/coreconduit/fileforge.git
@@ -23,42 +30,59 @@ cd fileforge
 bash scripts/install.sh
 ```
 
-Requirements: Python 3.11+, [Ollama](https://ollama.com) (optional, for AI classification).
+**Requirements:** Python 3.11+, [Ollama](https://ollama.com) (optional, for AI classification).
 
 ## Quick start
 
 ```bash
-# Scan a directory and preview what would change (no files moved)
-fileforge scan ~/Downloads --dry-run
+# Pull required Ollama models
+ollama pull qwen3:4b
+ollama pull nomic-embed-text
 
-# Organize files using the default rules
-fileforge organize ~/Downloads
+# Scan a directory
+fileforge scan ~/Documents
+
+# Preview organization (dry-run)
+fileforge organize ~/Downloads --dry-run
 
 # Find duplicates
 fileforge dupes ~/Documents
 ```
 
-## Background Organization (Phase 4)
+## Commands
 
-FileForge can run continuously in the background:
+| Command | Description |
+|---------|-------------|
+| `fileforge scan <dirs>` | Scan and classify files |
+| `fileforge organize <dirs>` | Move files to categorized folders |
+| `fileforge dupes <dirs>` | Find and manage duplicates |
+| `fileforge watch <dirs>` | Monitor for changes |
+| `fileforge schedule <dirs>` | Schedule automated scans |
+| `fileforge status` | Show session info |
 
-### Watch Mode
+Run `fileforge --help` for full options.
+
+## Background Automation
+
+### Watch mode
+
 Monitor directories and scan on changes:
+
 ```bash
 fileforge watch ~/Documents ~/Downloads --phase-2
 ```
 
-### Scheduled Scans
+### Scheduled scans
+
 Run daily scans automatically:
+
 ```bash
-# Schedule a daily 2 AM scan
+# Daily at 2 AM
 fileforge schedule ~/Documents --cron "0 2 * * *"
 
 # Or use systemd (Linux)
 bash src/fileforge/systemd/install.sh
 ```
-
-See `fileforge --help` or the [docs/](docs/) directory for full usage.
 
 ## Configuration
 
@@ -68,14 +92,34 @@ Copy the example config and edit to suit:
 cp fileforge.toml.example fileforge.toml
 ```
 
+Create `.forgeignore` files in any directory to exclude patterns:
+
+```
+*.log
+node_modules/
+*.tmp
+```
+
 ## Development
 
 ```bash
 bash scripts/install.sh       # editable install + dev deps
 bash scripts/check.sh         # tests + lint + formatting
+python -m pytest -q           # run tests
 ```
+
+## Documentation
+
+- [Overview](docs/overview.md) — Project goals and capabilities
+- [Architecture](docs/architecture.md) — Design and data flow
+- [Setup Guide](docs/setup.md) — Detailed installation and usage
+- [Tech Stack](docs/tech-stack.md) — Dependencies and requirements
+
+## License
+
+MIT — see [LICENSE](LICENSE).
 
 ---
 
 A [CoreConduit Consulting Services](https://coreconduit.com) open-source tool.
-MIT licensed. Issues and contributions welcome.
+Issues and contributions welcome.

@@ -167,20 +167,139 @@ fileforge scan <dirs>... [OPTIONS]
 |---|---|---|---|
 | `dirs` | paths (1+) | — | One or more directories to scan. Recursive. |
 | `--no-classify` | flag | off | Skip AI classification. Faster; Ollama not required. |
+| `--phase-2` | flag | off | Enable near-duplicate detection, stale file detection, version supersession. |
+| `--interactive` | flag | off | Open HTML report in browser after scan. |
+| `--dry-run` | flag | off | Preview actions without executing. |
 | `--config` | path | `./fileforge.toml` | Path to a custom config file. |
 | `--depth` | int | from config | Override `max_depth` for this run. |
 
 **Examples:**
 
 ```bash
-# Scan Documents only
+# Basic scan with classification
 fileforge scan ~/Documents
 
-# Scan two dirs, skip classification
+# Fast scan without classification
 fileforge scan ~/Downloads ~/Desktop --no-classify
 
-# Use a project-specific config
-fileforge scan ~/Projects --config ~/Projects/fileforge.toml
+# Full analysis with Phase 2
+fileforge scan ~/Documents --phase-2
+
+# Interactive HTML report
+fileforge scan ~/Documents --phase-2 --interactive
+
+# Preview actions without executing
+fileforge scan ~/Documents --dry-run
+```
+
+### `fileforge organize`
+
+Moves files to organized folder structure by category.
+
+```
+fileforge organize <dirs>... [OPTIONS]
+```
+
+| Argument / Option | Type | Default | Description |
+|---|---|---|---|
+| `dirs` | paths (1+) | — | One or more directories to organize. |
+| `--dry-run` | flag | off | Preview moves without executing. |
+| `--trash-dir` | path | `~/.trash` | Directory for stale files. |
+| `--config` | path | `./fileforge.toml` | Custom config file. |
+
+**Examples:**
+
+```bash
+# Preview organization plan
+fileforge organize ~/Downloads --dry-run
+
+# Organize files (moves to ~/Organized/<category>/)
+fileforge organize ~/Downloads
+
+# Custom destination for stale files
+fileforge organize ~/Downloads --trash-dir ~/Archive/old
+```
+
+### `fileforge dupes`
+
+Find and manage duplicate files.
+
+```
+fileforge dupes <dirs>... [OPTIONS]
+```
+
+| Argument / Option | Type | Default | Description |
+|---|---|---|---|
+| `dirs` | paths (1+) | — | One or more directories to scan. |
+| `--delete` | flag | off | Delete duplicate files. |
+| `--move` | flag | off | Move duplicates to `~/Organized/Duplicates/`. |
+| `--dry-run` | flag | off | Preview actions without executing. |
+
+**Examples:**
+
+```bash
+# Show duplicate report
+fileforge dupes ~/Documents
+
+# Preview deletion
+fileforge dupes ~/Downloads --delete --dry-run
+
+# Move duplicates to organized folder
+fileforge dupes ~/Downloads --move
+```
+
+### `fileforge watch`
+
+Monitor directories for changes and scan automatically.
+
+```
+fileforge watch <dirs>... [OPTIONS]
+```
+
+| Argument / Option | Type | Default | Description |
+|---|---|---|---|
+| `dirs` | paths (1+) | — | One or more directories to monitor. |
+| `--phase-2` | flag | off | Enable Phase 2 analysis on each scan. |
+| `--debounce` | int | 5 | Seconds to wait after last change before scanning. |
+
+**Examples:**
+
+```bash
+# Watch Documents for changes
+fileforge watch ~/Documents
+
+# Watch multiple dirs with Phase 2
+fileforge watch ~/Documents ~/Downloads --phase-2
+
+# Custom debounce interval (wait for changes to settle)
+fileforge watch ~/Documents --debounce 10
+```
+
+### `fileforge schedule`
+
+Schedule automated scans via cron syntax.
+
+```
+fileforge schedule <dirs>... --cron <expr> [OPTIONS]
+```
+
+| Argument / Option | Type | Default | Description |
+|---|---|---|---|
+| `dirs` | paths (1+) | — | One or more directories to scan. |
+| `--cron` | string | — | Cron expression (e.g., `"0 2 * * *"` for 2 AM daily). |
+| `--phase-2` | flag | off | Enable Phase 2 analysis. |
+
+**Examples:**
+
+```bash
+# Daily 2 AM scan
+fileforge schedule ~/Documents --cron "0 2 * * *"
+
+# Every Monday at 9 AM
+fileforge schedule ~/Documents --cron "0 9 * * 1"
+
+# With Phase 2 analysis
+fileforge schedule ~/Documents ~/Downloads --cron "0 2 * * *" --phase-2
 ```
 
 ### `fileforge status`
