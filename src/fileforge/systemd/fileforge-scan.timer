@@ -1,0 +1,11 @@
+[Unit]
+Description=FileForge Daily Scan Timer
+Requires=fileforge-scan.service
+
+[Timer]
+OnCalendar=daily
+OnCalendar=02:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
