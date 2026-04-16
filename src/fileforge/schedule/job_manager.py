@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import sqlite3
 from datetime import datetime, UTC
 from pathlib import Path
 from uuid import uuid4
@@ -104,7 +105,7 @@ class JobManager:
 
             _log.info(f"Job {job_id} completed: {file_count} files scanned")
 
-        except Exception as e:
+        except (OSError, sqlite3.Error) as e:
             # Log failure
             self.db._conn.execute(
                 """
@@ -115,5 +116,5 @@ class JobManager:
                 ("failed", str(e), job_id),
             )
             self.db._conn.commit()
-            _log.error(f"Job {job_id} failed: {e}")
+            _log.error(f"Job {job_id} failed: {type(e).__name__}: {e}")
             raise

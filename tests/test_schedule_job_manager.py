@@ -86,3 +86,34 @@ def test_job_manager_tracks_stats() -> None:
         assert row[0] >= 2
 
         db.close()
+
+
+def test_job_manager_handles_errors() -> None:
+    """JobManager records errors in job_history on failure."""
+    import unittest.mock as mock
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmpdir_path = Path(tmpdir)
+
+        db = SessionDB(tmpdir_path / "sessions.db")
+        cfg = ScheduleConfig(enabled=True)
+        mgr = JobManager(db, cfg)
+
+        # Mock rglob to raise an OSError
+        with mock.patch.object(Path, "rglob", side_effect=OSError("Permission denied")):
+            try:
+                mgr.run_now([tmpdir_path], phase_2=False)
+            except OSError:
+                pass  # Expected
+
+        # Check that error was logged
+        cursor = db._conn.execute(
+            "SELECT status, error_message FROM job_history WHERE job_type = 'manual' ORDER BY triggered_at DESC LIMIT 1"
+        )
+        row = cursor.fetchone()
+        assert row is not None
+        assert row[0] == "failed"
+        assert row[1] is not None
+        assert len(row[1]) > 0
+
+        db.close()
