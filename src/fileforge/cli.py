@@ -254,6 +254,240 @@ def scan(
 
 
 @app.command()
+def organize(
+    dirs: list[str] = typer.Argument(help="Directories to organize"),
+    config: Path = typer.Option(None, help="Config file path"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Preview without executing"),
+    trash_dir: Path = typer.Option(None, help="Trash directory for stale files"),
+) -> None:
+    """Organize files based on classification, duplicates, and staleness."""
+    # Console created inside function so CliRunner captures output in tests
+    console = Console(force_terminal=False, highlight=False)
+
+    cfg = load_config(config)
+    scan_paths = [Path(d).expanduser() for d in dirs]
+
+    # Validate all paths before touching the filesystem
+    invalid = [p for p in scan_paths if not p.is_dir()]
+    if invalid:
+        for p in invalid:
+            console.print(f"[red]Error:[/red] not a directory: {p}")
+        raise typer.Exit(code=1)
+
+    # Set up default trash directory
+    if trash_dir is None:
+        trash_dir = Path(cfg.general.output_dir).expanduser() / "trash"
+
+    # Import actions inside function for lazy loading
+    from fileforge.actions.mover import move_file
+    from fileforge.actions.trash import move_to_trash
+
+    # Set up session DB
+    db_dir = Path(cfg.general.output_dir).expanduser()
+    db_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        db = SessionDB(db_dir / "sessions.db")
+        session_id = db.create_session(scan_paths)
+    except sqlite3.OperationalError as exc:
+        console.print(f"[red]Error:[/red] cannot open database: {exc}")
+        raise typer.Exit(code=1)
+
+    try:
+        # Scan and collect records (reuse scan logic)
+        all_patterns = list(cfg.ignore.patterns)
+        for root in scan_paths:
+            forgeignore = root / ".forgeignore"
+            if forgeignore.exists():
+                for line in forgeignore.read_text().splitlines():
+                    line = line.strip()
+                    if line and not line.startswith("#"):
+                        all_patterns.append(line)
+        scanner = Scanner(ignore_patterns=all_patterns, max_depth=cfg.general.max_depth)
+
+        records = []
+        for record in scanner.scan(scan_paths):
+            inserted = db.insert_record(session_id, record)
+            records.append(inserted)
+
+        # Hash all records for dedup
+        console.print(f"Hashing {len(records)} files...")
+        hashed_records = []
+        hash_skipped = 0
+        for record in records:
+            if record.id is not None:
+                try:
+                    digest = hash_file(record.path)
+                    db.update_sha256(record.id, digest)
+                    record = record.model_copy(update={"sha256": digest})
+                except (PermissionError, OSError):
+                    hash_skipped += 1
+            hashed_records.append(record)
+        if hash_skipped:
+            console.print(
+                f"[yellow]Warning:[/yellow] {hash_skipped} file(s) skipped (permission denied)"
+            )
+
+        # Detect exact duplicates
+        dup_groups = find_exact_duplicates(hashed_records)
+
+        # Mark duplicate records
+        for group in dup_groups:
+            for i, record in enumerate(group):
+                if i > 0:  # First file is original, rest are duplicates
+                    idx = hashed_records.index(record)
+                    hashed_records[idx] = record.model_copy(
+                        update={"is_duplicate": True, "duplicate_of": group[0].path}
+                    )
+                    if record.id is not None:
+                        db.update_stale(record.id, "duplicate")
+
+        # AI classification
+        console.print(f"Classifying {len(hashed_records)} files...")
+        classified_records = []
+        for record in hashed_records:
+            snippet = extract_snippet(record.path, max_chars=2000)
+            category = classify_file(
+                path=record.path,
+                snippet=snippet,
+                model=cfg.ai.classification_model,
+                hints=cfg.ai.category_hints,
+            )
+            if record.id is not None:
+                db.update_category(record.id, category)
+            record = record.model_copy(update={"category": category})
+            classified_records.append(record)
+        hashed_records = classified_records
+
+        # Detect stale files (phase 2 analysis)
+        from fileforge.analysis.staleness import is_stale, matches_junk_pattern
+
+        console.print("Detecting stale files...")
+        stale_records = []
+        for i, record in enumerate(hashed_records):
+            is_stale_age = is_stale(record, cfg.staleness.stale_days)
+            is_junk = matches_junk_pattern(record.name, cfg.staleness.junk_patterns)
+
+            if is_stale_age or is_junk:
+                reason = (
+                    "older than threshold" if is_stale_age else "matches junk pattern"
+                )
+                if record.id is not None:
+                    db.update_stale(record.id, reason)
+                hashed_records[i] = record.model_copy(
+                    update={"is_stale": True, "stale_reason": reason}
+                )
+                stale_records.append(hashed_records[i])
+
+        # Build action plan
+        organized_base = Path.home() / "Organized"
+        duplicates_base = organized_base / "Duplicates"
+        action_plan: list[tuple[Path, Path, str]] = []  # (source, dest, action_type)
+
+        for record in hashed_records:
+            # Skip duplicates - they go to duplicates folder
+            if record.is_duplicate:
+                dest = duplicates_base / record.category / record.name
+                action_plan.append((record.path, dest, "duplicate"))
+            # Skip stale files - they go to trash
+            elif record.is_stale:
+                action_plan.append((record.path, trash_dir, "stale"))
+            # Regular files - organize by category
+            elif record.category:
+                dest = organized_base / record.category / record.name
+                action_plan.append((record.path, dest, "organize"))
+
+        # Dry-run: just print the plan
+        if dry_run:
+            console.print(
+                "\n[yellow][DRY RUN][/yellow] The following actions would be taken:"
+            )
+            console.print("[dim](No files will be modified)[/dim]\n")
+
+            for source, dest, action_type in action_plan:
+                if action_type == "stale":
+                    console.print(f"  {source.name:40s} → [red]TRASH[/red] ({source})")
+                elif action_type == "duplicate":
+                    console.print(
+                        f"  {source.name:40s} → [yellow]DUPLICATE[/yellow] {dest}"
+                    )
+                else:
+                    console.print(f"  {source.name:40s} → [green]{dest}[/green]")
+
+            console.print(f"\n[dim]Total files to process: {len(action_plan)}[/dim]")
+            return
+
+        # Execute actions
+        console.print(f"\nOrganizing {len(action_plan)} files...")
+        organized_count = 0
+        duplicate_count = 0
+        stale_count = 0
+        error_count = 0
+
+        for source, dest, action_type in action_plan:
+            try:
+                if action_type == "stale":
+                    # Move to trash
+                    trash_path = move_to_trash(source, trash_dir)
+                    db.log_action(
+                        session_id=session_id,
+                        record_id=record.id or 0,
+                        action_type="trash",
+                        source_path=source,
+                        destination_path=trash_path,
+                        status="completed",
+                    )
+                    stale_count += 1
+                elif action_type == "duplicate":
+                    # Move to duplicates folder
+                    final_dest = move_file(source, dest, create_dirs=True)
+                    db.log_action(
+                        session_id=session_id,
+                        record_id=record.id or 0,
+                        action_type="duplicate",
+                        source_path=source,
+                        destination_path=final_dest,
+                        status="completed",
+                    )
+                    duplicate_count += 1
+                else:
+                    # Organize by category
+                    final_dest = move_file(source, dest, create_dirs=True)
+                    db.log_action(
+                        session_id=session_id,
+                        record_id=record.id or 0,
+                        action_type="organize",
+                        source_path=source,
+                        destination_path=final_dest,
+                        status="completed",
+                    )
+                    organized_count += 1
+
+            except (FileNotFoundError, IsADirectoryError, PermissionError) as e:
+                console.print(f"[red]Error moving {source.name}:[/red] {e}")
+                db.log_action(
+                    session_id=session_id,
+                    record_id=record.id or 0,
+                    action_type=action_type,
+                    source_path=source,
+                    destination_path=dest,
+                    status="failed",
+                    error_message=str(e),
+                )
+                error_count += 1
+
+        # Print summary
+        console.print("\n[green]Organization complete![/green]")
+        console.print(f"  Organized: {organized_count}")
+        console.print(f"  Duplicates: {duplicate_count}")
+        console.print(f"  Stale/Trashed: {stale_count}")
+        if error_count:
+            console.print(f"  [red]Errors: {error_count}[/red]")
+
+    finally:
+        db.close()
+
+
+@app.command()
 def watch(
     dirs: list[str] = typer.Argument(help="Directories to watch"),
     config: Path = typer.Option(None, help="Config file path"),
