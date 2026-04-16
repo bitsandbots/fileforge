@@ -46,7 +46,7 @@ enabled = true
         config_file.write_text(config_content)
 
         # Create a directory to scan
-        scan_dir = tmpdir_path / "scan_me"
+        scan_dir = tmpdir_path / "HARNESS_scan_me"
         scan_dir.mkdir()
 
         result = runner.invoke(
