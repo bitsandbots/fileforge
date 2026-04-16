@@ -59,8 +59,23 @@ fileforge dupes ~/Documents
 | `fileforge watch <dirs>` | Monitor for changes |
 | `fileforge schedule <dirs>` | Schedule automated scans |
 | `fileforge status` | Show session info |
+| `fileforge server` | Start the web UI server |
 
 Run `fileforge --help` for full options.
+
+## Web UI
+
+FileForge includes a web interface for visualizing scan results:
+
+```bash
+# Start the server (runs on http://localhost:8082)
+fileforge server
+
+# Development mode with auto-reload
+fileforge server --reload
+```
+
+Run `fileforge server --help` for full options.
 
 ## Background Automation
 

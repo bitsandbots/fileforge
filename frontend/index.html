@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FileForge — File Organizer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --navy: #0d1b2e;
+            --silver: #d8dde8;
+            --blue: #2b7de9;
+            --orange: #e07018;
+            --dark: #060f1b;
+            --light: #ffffff;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: linear-gradient(135deg, var(--navy) 0%, var(--dark) 100%);
+            color: var(--silver);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        header {
+            background: var(--navy);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 2rem;
+        }
+
+        .brand { display: flex; align-items: center; gap: 0.75rem; }
+        .brand-icon {
+            width: 40px; height: 40px;
+            background: linear-gradient(135deg, var(--blue), var(--orange));
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 1.25rem; color: white;
+            font-family: 'Exo 2', sans-serif;
+        }
+
+        .brand-text h1 {
+            font-family: 'Exo 2', sans-serif;
+            font-size: 1.5rem; font-weight: 700; color: var(--light);
+        }
+        .brand-text span { color: var(--orange); font-weight: 600; }
+
+        .nav-actions { display: flex; gap: 1rem; align-items: center; }
+
+        .tabs { display: flex; gap: 0.5rem; margin-bottom: 2rem; }
+        .tab {
+            padding: 0.75rem 1.5rem; background: rgba(255,255,255,0.05);
+            border: none; border-radius: 8px; color: var(--silver);
+            cursor: pointer; font-size: 1rem; font-weight: 500;
+            transition: all 0.2s ease; border-bottom: 2px solid transparent;
+        }
+        .tab:hover { background: rgba(255,255,255,0.08); }
+        .tab.active { background: rgba(43,125,233,0.2); border-bottom-color: var(--blue); color: var(--light); }
+
+        .container { max-width: 1400px; margin: 0 auto; padding: 0 1.5rem 2rem; }
+
+        .stats-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem; margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: rgba(255,255,255,0.05); border-radius: 12px; padding: 1.5rem;
+            border-left: 4px solid var(--blue); transition: transform 0.2s ease;
+        }
+        .stat-card:hover { transform: translateY(-2px); background: rgba(255,255,255,0.08); }
+        .stat-card.warning { border-left-color: var(--warning); }
+        .stat-card.danger { border-left-color: var(--danger); }
+        .stat-label { font-size: 0.875rem; color: var(--silver); opacity: 0.7; margin-bottom: 0.5rem; }
+        .stat-value { font-size: 2rem; font-weight: 700; color: var(--light); font-family: 'Exo 2', sans-serif; }
+        .stat-sub { font-size: 0.875rem; color: var(--blue); margin-top: 0.5rem; }
+
+        .upload-section {
+            background: rgba(255,255,255,0.05); border-radius: 12px;
+            padding: 2rem; margin-bottom: 2rem; border: 2px dashed rgba(255,255,255,0.15);
+            text-align: center; transition: all 0.3s ease;
+        }
+        .upload-section.dragover { border-color: var(--blue); background: rgba(43,125,233,0.1); }
+        .upload-content { display: flex; flex-direction: column; align-items: center; gap: 1rem; }
+        .upload-icon {
+            width: 64px; height: 64px; background: rgba(43,125,233,0.2);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 2rem; color: var(--blue);
+        }
+        .upload-text { font-size: 1.25rem; color: var(--light); }
+        .upload-sub { color: var(--silver); opacity: 0.7; font-size: 0.9rem; }
+        .file-input { display: none; }
+
+        .btn {
+            padding: 0.75rem 1.5rem; border-radius: 8px; border: none;
+            font-size: 1rem; font-weight: 600; cursor: pointer;
+            transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 0.5rem;
+        }
+        .btn-primary { background: linear-gradient(135deg, var(--blue), #3b82f6); color: white; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(43,125,233,0.4); }
+        .btn-secondary { background: rgba(255,255,255,0.1); color: var(--light); }
+        .btn-secondary:hover { background: rgba(255,255,255,0.15); }
+        .btn-sm { padding: 0.5rem 1rem; font-size: 0.875rem; }
+
+        .toolbar {
+            display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;
+        }
+        .search-box { flex: 1; min-width: 250px; position: relative; }
+        .search-box input {
+            width: 100%; padding: 0.75rem 1rem 0.75rem 2.5rem;
+            border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(0,0,0,0.2); color: var(--light); font-size: 1rem;
+        }
+        .search-box input:focus { outline: none; border-color: var(--blue); background: rgba(0,0,0,0.3); }
+        .search-box::before { content: '🔍'; position: absolute; left: 10px; top: 50%; transform: translateY(-50%); opacity: 0.5; }
+        .filter-select {
+            padding: 0.75rem 2rem 0.75rem 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(0,0,0,0.2); color: var(--light); font-size: 0.9rem; cursor: pointer;
+        }
+
+        .table-container {
+            background: rgba(255,255,255,0.05); border-radius: 12px; overflow: hidden; overflow-x: auto; border: 1px solid rgba(255,255,255,0.1);
+        }
+        table { width: 100%; border-collapse: collapse; min-width: 800px; }
+        th {
+            background: var(--navy); color: var(--light); padding: 1rem;
+            text-align: left; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+            border-bottom: 1px solid rgba(255,255,255,0.1); position: sticky; top: 0;
+        }
+        td { padding: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05); color: var(--silver); font-size: 0.95rem; }
+        tr:hover td { background: rgba(255,255,255,0.05); }
+
+        .badge {
+            display: inline-flex; align-items: center; padding: 0.25rem 0.625rem; border-radius: 4px;
+            font-size: 0.8rem; font-weight: 500; text-transform: uppercase;
+        }
+        .badge-critical { background: rgba(231,76,60,0.2); color: var(--danger); }
+        .badge-warning { background: rgba(243,156,18,0.2); color: var(--warning); }
+        .badge-success { background: rgba(39,174,96,0.2); color: var(--success); }
+        .badge-neutral { background: rgba(255,255,255,0.1); color: var(--silver); }
+
+        .category { display: inline-flex; align-items: center; gap: 0.5rem; }
+        .category-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--blue); }
+
+        .actions { display: flex; gap: 0.5rem; }
+        .action-btn {
+            padding: 0.5rem 0.75rem; border: none; border-radius: 6px; cursor: pointer;
+            font-size: 0.8rem; font-weight: 500; transition: all 0.2s ease;
+        }
+        .btn-move { background: var(--blue); color: white; }
+        .btn-move:hover { background: #1a68d6; }
+        .btn-archive { background: var(--orange); color: white; }
+        .btn-archive:hover { background: #c85e12; }
+        .btn-delete { background: var(--danger); color: white; }
+        .btn-delete:hover { background: #c0392b; }
+        .btn-view { background: rgba(255,255,255,0.1); color: var(--silver); }
+        .btn-view:hover { background: rgba(255,255,255,0.15); }
+
+        .empty-state { text-align: center; padding: 4rem 2rem; color: var(--silver); opacity: 0.6; }
+        .empty-state h3 { font-family: 'Exo 2', sans-serif; font-size: 1.5rem; margin-bottom: 0.5rem; color: var(--light); }
+
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8); z-index: 2000; display: none; align-items: center; justify-content: center; padding: 2rem;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: var(--navy); border-radius: 12px; width: 100%; max-width: 800px;
+            max-height: 90vh; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        .modal-header {
+            padding: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;
+        }
+        .modal-header h2 { font-family: 'Exo 2', sans-serif; color: var(--light); }
+        .close-btn {
+            background: none; border: none; color: var(--silver); font-size: 1.5rem;
+            cursor: pointer; padding: 0; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
+        }
+        .modal-body { padding: 1.5rem; overflow-y: auto; }
+        .detail-row {
+            display: grid; grid-template-columns: 150px 1fr; gap: 1rem; padding: 1rem 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .detail-label { color: var(--silver); opacity: 0.6; font-size: 0.9rem; }
+        .detail-value { color: var(--light); font-family: 'IBM Plex Mono', monospace; font-size: 0.9rem; word-break: break-all; }
+
+        .progress-container { background: rgba(0,0,0,0.3); border-radius: 8px; height: 6px; overflow: hidden; margin: 1rem 0; }
+        .progress-bar { background: linear-gradient(90deg, var(--blue), var(--orange)); height: 100%; width: 0%; transition: width 0.3s ease; }
+
+        .toast-container { position: fixed; bottom: 2rem; right: 2rem; z-index: 3000; display: flex; flex-direction: column; gap: 0.75rem; }
+        .toast {
+            background: var(--navy); padding: 1rem 1.5rem; border-radius: 8px; border-left: 4px solid var(--blue);
+            color: var(--silver); box-shadow: 0 4px 12px rgba(0,0,0,0.3); animation: slideIn 0.3s ease; display: flex; align-items: center; gap: 0.75rem;
+        }
+        .toast.success { border-left-color: var(--success); }
+        .toast.error { border-left-color: var(--danger); }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        @media (max-width: 768px) {
+            .header-content { flex-direction: column; gap: 1rem; }
+            .search-box { min-width: 100%; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <div class="brand">
+                <div class="brand-icon">FF</div>
+                <div class="brand-text"><h1>FileForge<span>Organizer</span></h1></div>
+            </div>
+            <div class="nav-actions">
+                <button class="btn btn-primary" onclick="uploadFiles()"><span>📁</span> Scan Files</button>
+                <button class="btn btn-secondary" onclick="showSettings()"><span>⚙️</span> Settings</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="stats-grid">
+            <div class="stat-card"><div class="stat-label">Total Files</div><div class="stat-value" id="stat-total">0</div><div class="stat-sub" id="stat-size">0 B</div></div>
+            <div class="stat-card warning"><div class="stat-label">Duplicates</div><div class="stat-value" id="stat-duplicates">0</div><div class="stat-sub" id="stat-saved">0 B recoverable</div></div>
+            <div class="stat-card danger"><div class="stat-label">Stale Files</div><div class="stat-value" id="stat-stale">0</div><div class="stat-sub">Needs review</div></div>
+            <div class="stat-card"><div class="stat-label">Categories</div><div class="stat-value" id="stat-categories">0</div><div class="stat-sub">Types found</div></div>
+        </div>
+
+        <div class="upload-section" id="uploadArea">
+            <div class="upload-content">
+                <div class="upload-icon">📁</div>
+                <div class="upload-text">Scan Directories</div>
+                <div class="upload-sub">Select a directory to scan and organize your files</div>
+                <div>
+                    <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()"><span>📂</span> Choose Directory</button>
+                    <input type="file" id="fileInput" class="file-input" webkitdirectory multiple onchange="handleDirectorySelect(this)">
+                </div>
+                <div style="margin-top: 1rem; display: flex; gap: 1rem; align-items: center;">
+                    <label style="color: var(--silver); opacity: 0.7;"><input type="checkbox" id="includeSubdirs" checked> Include subdirectories</label>
+                    <label style="color: var(--silver); opacity: 0.7;"><input type="checkbox" id="enablePhase2"> Enable advanced analysis</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="progress-container" id="progressContainer" style="display: none;"><div class="progress-bar" id="progressBar"></div></div>
+
+        <div class="tabs">
+            <button class="tab active" data-tab="files">All Files</button>
+            <button class="tab" data-tab="duplicates">Duplicates</button>
+            <button class="tab" data-tab="stale">Stale Files</button>
+            <button class="tab" data-tab="categories">By Category</button>
+        </div>
+
+        <div class="toolbar">
+            <div class="search-box"><input type="text" id="searchInput" placeholder="Search files, categories, or content..."></div>
+            <select class="filter-select" id="filterSelect"><option value="all">All Status</option><option value="normal">Normal</option><option value="duplicate">Duplicates Only</option><option value="stale">Stale Only</option></select>
+            <select class="filter-select" id="categoryFilter"><option value="all">All Categories</option><option value="document">Documents</option><option value="image">Images</option><option value="audio">Audio</option><option value="video">Video</option><option value="archive">Archives</option><option value="code">Code</option><option value="data">Data</option><option value="other">Other</option></select>
+            <button class="btn btn-secondary btn-sm" onclick="exportData()">Download JSON</button>
+        </div>
+
+        <div class="table-container">
+            <table id="fileTable">
+                <thead><tr><th>Name</th><th>Category</th><th>Size</th><th>Modified</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody id="fileTableBody"><tr><td colspan="6" class="empty-state"><h3>No files scanned yet</h3><p>Select a directory above to begin scanning</p></td></tr></tbody>
+            </table>
+        </div>
+    </main>
+
+    <div class="modal-overlay" id="fileModal"><div class="modal"><div class="modal-header"><h2 id="modalTitle">File Details</h2><button class="close-btn" onclick="closeModal()">&times;</button></div><div class="modal-body" id="modalBody"><p class="loading">Select a file to view details</p></div></div></div>
+    <div class="modal-overlay" id="settingsModal"><div class="modal"><div class="modal-header"><h2>Settings</h2><button class="close-btn" onclick="closeSettings()">&times;</button></div><div class="modal-body" id="settingsBody"><p class="loading">Loading settings...</p></div></div></div>
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        let files = [];
+        let currentFilter = { type: 'files', search: '', category: 'all', status: 'all' };
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024, sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function formatDatetime(dt) {
+            if (!dt) return 'Unknown';
+            return new Date(dt).toLocaleString();
+        }
+
+        function showToast(message, type) {
+            if (typeof type === 'undefined') type = 'success';
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = 'toast ' + type;
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(function() { toast.remove(); }, 3000);
+        }
+
+        function uploadFiles() {
+            if (confirm('Simulate scan with sample files?')) simulateScan();
+        }
+
+        function handleDirectorySelect(input) {
+            const filesList = Array.from(input.files).map(function(f) {
+                return { path: f.webkitRelativePath || f.name, name: f.name, size: f.size, lastModified: f.lastModified, type: f.type };
+            });
+            simulateScan(filesList);
+        }
+
+        function simulateScan(filesList) {
+            if (typeof filesList === 'undefined') filesList = [];
+            document.getElementById('progressContainer').style.display = 'block';
+            const progressBar = document.getElementById('progressBar');
+            progressBar.style.width = '0%';
+
+            if (filesList.length === 0) {
+                filesList = [
+                    { path: '/home/user/documents/report.pdf', name: 'report.pdf', size: 2456789, lastModified: Date.now() - 86400000 * 10, type: 'application/pdf' },
+                    { path: '/home/user/documents/notes.docx', name: 'notes.docx', size: 124578, lastModified: Date.now() - 86400000 * 5, type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' },
+                    { path: '/home/user/pics/vacation.jpg', name: 'vacation.jpg', size: 3456789, lastModified: Date.now() - 86400000 * 2, type: 'image/jpeg' },
+                    { path: '/home/user/pics/vacation-copy.jpg', name: 'vacation-copy.jpg', size: 3456789, lastModified: Date.now() - 86400000 * 2, type: 'image/jpeg' },
+                    { path: '/home/user/projects/code.py', name: 'code.py', size: 89012, lastModified: Date.now() - 86400000 * 1, type: 'text/x-python' },
+                    { path: '/home/user/projects/utils.js', name: 'utils.js', size: 45678, lastModified: Date.now() - 86400000 * 3, type: 'text/javascript' },
+                    { path: '/home/user/music/song.mp3', name: 'song.mp3', size: 5678901, lastModified: Date.now() - 86400000 * 15, type: 'audio/mpeg' },
+                    { path: '/home/user/downloads/archive.tar.gz', name: 'archive.tar.gz', size: 123456789, lastModified: Date.now() - 86400000 * 30, type: 'application/gzip' },
+                    { path: '/home/user/temp/cache.tmp', name: 'cache.tmp', size: 0, lastModified: Date.now() - 86400000 * 2, type: 'application/octet-stream' },
+                    { path: '/home/user/videos/movie.mp4', name: 'movie.mp4', size: 1234567890, lastModified: Date.now() - 86400000 * 1, type: 'video/mp4' },
+                    { path: '/home/user/docs/thesis.pdf', name: 'thesis.pdf', size: 5678901, lastModified: Date.now() - 86400000 * 45, type: 'application/pdf' },
+                    { path: '/home/user/docs/thesis-v2.pdf', name: 'thesis-v2.pdf', size: 6123456, lastModified: Date.now() - 86400000 * 3, type: 'application/pdf' },
+                ];
+            }
+
+            let progress = 0;
+            const interval = setInterval(function() {
+                progress += 10;
+                progressBar.style.width = progress + '%';
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    progressBar.style.width = '100%';
+                    document.getElementById('progressContainer').style.display = 'none';
+
+                    files = filesList.map(function(f) {
+                        var ext = f.name.split('.').pop().toLowerCase();
+                        var category = 'Other';
+                        if (['pdf', 'doc', 'docx', 'txt', 'rtf', 'odt'].includes(ext)) category = 'Documents';
+                        else if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'bmp'].includes(ext)) category = 'Images';
+                        else if (['mp3', 'wav', 'ogg', 'flac'].includes(ext)) category = 'Audio';
+                        else if (['mp4', 'avi', 'mov', 'mkv', 'webm'].includes(ext)) category = 'Video';
+                        else if (['zip', 'tar', 'gz', 'rar', '7z', 'xz'].includes(ext)) category = 'Archives';
+                        else if (['py', 'js', 'ts', 'jsx', 'tsx', 'java', 'c', 'cpp', 'h', 'go', 'rs', 'rb', 'php'].includes(ext)) category = 'Code';
+                        else if (['json', 'csv', 'xml', 'yaml', 'yml', 'toml'].includes(ext)) category = 'Data';
+
+                        var isDuplicate = false, duplicate_of = null;
+                        filesList.forEach(function(other) {
+                            if (other !== f && other.size === f.size && other.name !== f.name) {
+                                isDuplicate = true; duplicate_of = other.path;
+                            }
+                        });
+
+                        var daysOld = (Date.now() - f.lastModified) / (1000 * 60 * 60 * 24);
+                        var isStale = daysOld > 30 || ext === 'tmp';
+
+                        return {
+                            id: Math.random().toString(36).substr(2, 9), path: f.path, name: f.name,
+                            size_bytes: f.size, modified_at: new Date(f.lastModified).toISOString(),
+                            category: category, is_duplicate: isDuplicate, duplicate_of: isDuplicate ? duplicate_of : null,
+                            is_stale: isStale, stale_reason: isStale ? (ext === 'tmp' ? 'matches junk pattern' : 'older than threshold') : null, content_snippet: null
+                        };
+                    });
+
+                    updateStats(); renderTable(); showToast('Scan complete: ' + files.length + ' files found', 'success');
+                }
+            }, 100);
+        }
+
+        function updateStats() {
+            document.getElementById('stat-total').textContent = files.length;
+            var totalSize = files.reduce(function(sum, f) { return sum + f.size_bytes; }, 0);
+            document.getElementById('stat-size').textContent = formatBytes(totalSize);
+            var duplicates = files.filter(function(f) { return f.is_duplicate; });
+            document.getElementById('stat-duplicates').textContent = duplicates.length;
+            var savedSize = duplicates.reduce(function(sum, f) { return sum + f.size_bytes; }, 0);
+            document.getElementById('stat-saved').textContent = formatBytes(savedSize);
+            var stale = files.filter(function(f) { return f.is_stale; });
+            document.getElementById('stat-stale').textContent = stale.length;
+            var categories = new Set(files.map(function(f) { return f.category || 'Other'; }));
+            document.getElementById('stat-categories').textContent = categories.size;
+        }
+
+        function renderTable() {
+            var tbody = document.getElementById('fileTableBody');
+            var filter = currentFilter;
+
+            var filtered = files.filter(function(f) {
+                if (filter.search) {
+                    var searchLower = filter.search.toLowerCase();
+                    var matchesName = f.name.toLowerCase().includes(searchLower);
+                    var matchesCategory = f.category ? f.category.toLowerCase().includes(searchLower) : false;
+                    var matchesPath = f.path.toLowerCase().includes(searchLower);
+                    if (!matchesName && !matchesCategory && !matchesPath) return false;
+                }
+                if (filter.category !== 'all' && f.category !== filter.category) return false;
+                if (filter.status === 'duplicate' && !f.is_duplicate) return false;
+                if (filter.status === 'stale' && !f.is_stale) return false;
+                if (filter.status === 'normal' && (f.is_duplicate || f.is_stale)) return false;
+                return true;
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="empty-state"><h3>No files match your filters</h3><p>Try adjusting your search or filter criteria</p></td></tr>';
+                return;
+            }
+
+            var html = '';
+            filtered.forEach(function(f) {
+                var badges = '';
+                if (f.is_duplicate) badges += '<span class="badge badge-warning">Duplicate</span> ';
+                if (f.is_stale) badges += '<span class="badge badge-critical">Stale</span> ';
+                if (!f.is_duplicate && !f.is_stale) badges += '<span class="badge badge-success">OK</span>';
+
+                html += '<tr data-file-id="' + escapeHtml(f.id) + '">';
+                html += '<td><div style="font-weight: 500;">' + escapeHtml(f.name) + '</div>';
+                html += '<div style="font-size: 0.8rem; color: var(--silver); opacity: 0.5; font-family: \'IBM Plex Mono\', monospace;">' + escapeHtml(f.path) + '</div></td>';
+                html += '<td><span class="category"><span class="category-dot" style="background: getCategoryColor(\'' + escapeHtml(f.category) + '\')"></span>' + (f.category || 'Uncategorized') + '</span></td>';
+                html += '<td>' + formatBytes(f.size_bytes) + '</td>';
+                html += '<td>' + formatDatetime(f.modified_at) + '</td>';
+                html += '<td>' + badges + '</td>';
+                html += '<td><div class="actions">';
+                html += '<button class="action-btn btn-view" onclick="viewFile(\'' + escapeHtml(f.id) + '\')">👁️</button>';
+                if (f.is_duplicate) {
+                    html += '<button class="action-btn btn-delete" onclick="deleteFile(\'' + escapeHtml(f.id) + '\')">Delete</button>';
+                } else {
+                    html += '<button class="action-btn btn-move" onclick="moveFile(\'' + escapeHtml(f.id) + '\')">Move</button>';
+                    html += '<button class="action-btn btn-archive" onclick="archiveFile(\'' + escapeHtml(f.id) + '\')">Archive</button>';
+                }
+                if (f.is_stale) {
+                    html += '<button class="action-btn btn-delete" onclick="trashFile(\'' + escapeHtml(f.id) + '\')">Trash</button>';
+                }
+                html += '</div></td>';
+                html += '</tr>';
+            });
+            tbody.innerHTML = html;
+        }
+
+        function getCategoryColor(category) {
+            var colors = { 'Documents': '#27ae60', 'Images': '#e74c3c', 'Audio': '#e67e22', 'Video': '#9b59b6', 'Archives': '#34495e', 'Code': '#3498db', 'Data': '#f39c12', 'Other': '#95a5a6' };
+            return colors[category] || '#7f8c8d';
+        }
+
+        function escapeHtml(str) {
+            if (typeof str !== 'string') return '';
+            return str.replace(/[&<>"']/g, function(m) {
+                var map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+                return map[m];
+            });
+        }
+
+        document.querySelectorAll('.tab').forEach(function(tab) {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+                tab.classList.add('active');
+                var tabName = tab.dataset.tab;
+                currentFilter.type = tabName;
+                if (tabName === 'duplicates') currentFilter.status = 'duplicate';
+                else if (tabName === 'stale') currentFilter.status = 'stale';
+                else currentFilter.status = 'all';
+                renderTable();
+            });
+        });
+
+        document.getElementById('searchInput').addEventListener('input', function(e) { currentFilter.search = e.target.value; renderTable(); });
+        document.getElementById('categoryFilter').addEventListener('change', function(e) { currentFilter.category = e.target.value; renderTable(); });
+        document.getElementById('filterSelect').addEventListener('change', function(e) { currentFilter.status = e.target.value; renderTable(); });
+
+        function viewFile(id) {
+            var file = files.find(function(f) { return f.id === id; });
+            if (!file) return;
+            document.getElementById('modalTitle').textContent = file.name;
+            var badges = '';
+            if (file.is_duplicate) badges += '<span class="badge badge-warning">Duplicate</span> ';
+            if (file.is_stale) badges += '<span class="badge badge-critical">Stale</span> ';
+            if (!file.is_duplicate && !file.is_stale) badges += '<span class="badge badge-success">Normal</span>';
+
+            var html = '';
+            html += '<div class="detail-row"><div class="detail-label">File Path</div><div class="detail-value">' + escapeHtml(file.path) + '</div></div>';
+            html += '<div class="detail-row"><div class="detail-label">Size</div><div class="detail-value">' + formatBytes(file.size_bytes) + '</div></div>';
+            html += '<div class="detail-row"><div class="detail-label">Category</div><div class="detail-value">' + (file.category || 'Uncategorized') + '</div></div>';
+            html += '<div class="detail-row"><div class="detail-label">Modified</div><div class="detail-value">' + formatDatetime(file.modified_at) + '</div></div>';
+            html += '<div class="detail-row"><div class="detail-label">Status</div><div class="detail-value">' + badges + '</div></div>';
+            if (file.is_duplicate) html += '<div class="detail-row"><div class="detail-label">Duplicate Of</div><div class="detail-value">' + escapeHtml(file.duplicate_of) + '</div></div>';
+            if (file.is_stale) html += '<div class="detail-row"><div class="detail-label">Stale Reason</div><div class="detail-value">' + escapeHtml(file.stale_reason) + '</div></div>';
+            html += '<div class="detail-row"><div class="detail-label">SHA-256</div><div class="detail-value">' + (file.sha256 || 'Not computed') + '</div></div>';
+            document.getElementById('modalBody').innerHTML = html;
+            document.getElementById('fileModal').classList.add('active');
+        }
+
+        function closeModal() { document.getElementById('fileModal').classList.remove('active'); }
+
+        function showSettings() {
+            document.getElementById('settingsBody').innerHTML = '<div class="detail-row"><div class="detail-label">Output Directory</div><div class="detail-value"><input type="text" value="' + (localStorage.getItem('fileforge_output_dir') || '~/.fileforge') + '" style="width: 100%; padding: 0.5rem; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: var(--light); border-radius: 4px;"></div></div><div class="detail-row"><div class="detail-label">AI Model</div><div class="detail-value"><select style="width: 100%; padding: 0.5rem; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: var(--light); border-radius: 4px;"><option>llama3:latest</option><option>qwen2.5:latest</option><option>mistral:latest</option></select></div></div><div class="detail-row"><div class="detail-label">Classification Threshold</div><div class="detail-value"><input type="range" min="0" max="100" value="50" style="width: 100%;"><span>50%</span></div></div><div style="margin-top: 2rem; display: flex; gap: 1rem; justify-content: flex-end;"><button class="btn btn-secondary" onclick="closeSettings()">Cancel</button><button class="btn btn-primary" onclick="saveSettings()">Save Settings</button></div>';
+            document.getElementById('settingsModal').classList.add('active');
+        }
+
+        function closeSettings() { document.getElementById('settingsModal').classList.remove('active'); }
+        function saveSettings() { showToast('Settings saved', 'success'); closeSettings(); }
+        function moveFile(id) { var file = files.find(function(f) { return f.id === id; }); if (file) showToast('File would be moved to organized folder: ' + file.name, 'success'); }
+        function archiveFile(id) { var file = files.find(function(f) { return f.id === id; }); if (file) showToast('File archived: ' + file.name, 'success'); }
+        function trashFile(id) { var file = files.find(function(f) { return f.id === id; }); if (file) showToast('File sent to trash: ' + file.name, 'warning'); }
+        function deleteFile(id) { var file = files.find(function(f) { return f.id === id; }); if (file) showToast('File permanently deleted: ' + file.name, 'warning'); }
+
+        function exportData() {
+            var json = JSON.stringify(files, null, 2);
+            var blob = new Blob([json], { type: 'application/json' });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = 'fileforge-scan-' + new Date().toISOString().split('T')[0] + '.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('Exported data to JSON file', 'success');
+        }
+
+        document.getElementById('fileModal').addEventListener('click', function(e) { if (e.target.id === 'fileModal') closeModal(); });
+        document.getElementById('settingsModal').addEventListener('click', function(e) { if (e.target.id === 'settingsModal') closeSettings(); });
+
+        var uploadArea = document.getElementById('uploadArea');
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(function(eventName) { uploadArea.addEventListener(eventName, function(e) { e.preventDefault(); e.stopPropagation(); }); });
+        ['dragenter', 'dragover'].forEach(function(eventName) { uploadArea.addEventListener(eventName, function() { uploadArea.classList.add('dragover'); }); });
+        ['dragleave', 'drop'].forEach(function(eventName) { uploadArea.addEventListener(eventName, function() { uploadArea.classList.remove('dragover'); }); });
+        uploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            var filesList = Array.from(e.dataTransfer.files).map(function(f) { return { path: f.webkitRelativePath || f.name, name: f.name, size: f.size, lastModified: f.lastModified, type: f.type }; });
+            simulateScan(filesList); showToast('Scanning ' + filesList.length + ' files...', 'success');
+        });
+
+        updateStats();
+    </script>
+</body>
+</html>

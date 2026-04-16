@@ -878,3 +878,33 @@ def status() -> None:
     """Show current session info and stats."""
     console = Console(force_terminal=False, highlight=False)
     console.print("No active session.")
+
+
+@app.command()
+def server(
+    host: str = typer.Option("0.0.0.0", help="Host to bind to"),
+    port: int = typer.Option(8082, help="Port to run the server on"),
+    reload: bool = typer.Option(False, "--reload", help="Enable auto-reload for dev"),
+) -> None:
+    """Start the FileForge web UI server."""
+    console = Console(force_terminal=False, highlight=False)
+    console.print("[green]Starting FileForge Web UI Server...[/green]")
+    console.print(f"[cyan]Server:[/cyan] http://{host}:{port}")
+    console.print("[dim]Press Ctrl+C to stop[/dim]\n")
+
+    try:
+        import uvicorn
+    except ImportError:
+        console.print(
+            "[red]Error:[/red] uvicorn not installed. Run: pip install 'fileforge[web]'"
+        )
+        raise typer.Exit(code=1)
+
+    uvicorn.run(
+        "fileforge.api.server:app",
+        host=host,
+        port=port,
+        reload=reload,
+        log_level="info",
+        reload_dirs=["src/fileforge/frontend"] if reload else None,
+    )

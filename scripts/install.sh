@@ -57,6 +57,20 @@ success "Core package installed"
 # ── Optional extras ────────────────────────────────────────────────────────────
 info "Checking optional extras..."
 
+# Web UI server
+if "$PYTHON" -c "import fastapi" 2>/dev/null; then
+    success "fastapi already installed (Web UI support)"
+else
+    read -p "Install fastapi for web UI server? [y/N] " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        "$PYTHON" -m pip install "fastapi>=0.115"
+        success "fastapi installed"
+        printf "${GREEN}[ok]${RESET} Start web server with: fileforge server\n"
+        printf "  Server runs on http://localhost:8082\n"
+    fi
+fi
+
 # ANN (approximate nearest neighbor for large datasets)
 if "$PYTHON" -c "import hnswlib" 2>/dev/null; then
     success "hnswlib already installed (ANN support)"

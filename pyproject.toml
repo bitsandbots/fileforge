@@ -38,12 +38,15 @@ dependencies = [
     "Jinja2>=3",
     "watchdog>=4",
     "apscheduler>=3.10",
+    "fastapi>=0.115",
+    "uvicorn>=0.32",
 ]
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "pytest-cov", "black", "ruff"]
 ann = ["hnswlib>=0.8"]
 ocr = ["pytesseract>=0.3"]
+web = ["fastapi>=0.115", "uvicorn>=0.32"]
 
 [project.urls]
 Homepage = "https://github.com/coreconduit/fileforge"

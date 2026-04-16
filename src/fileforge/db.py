@@ -253,6 +253,47 @@ class SessionDB:
         for row in cur:
             yield self._row_to_record(row)
 
+    def get_all_records(self) -> list[FileRecord]:
+        """Get all records from the database.
+
+        Returns:
+            List of all FileRecords.
+        """
+        cur = self._conn.execute("SELECT * FROM file_records")
+        return [self._row_to_record(row) for row in cur]
+
+    def list_sessions(self) -> list[dict]:
+        """List all scan sessions.
+
+        Returns:
+            List of session dictionaries with id, scan_dirs, created_at.
+        """
+        cur = self._conn.execute(
+            "SELECT id, scan_dirs, created_at FROM sessions ORDER BY created_at DESC"
+        )
+        return [
+            {
+                "id": row["id"],
+                "scan_dirs": json.loads(row["scan_dirs"]),
+                "created_at": row["created_at"],
+            }
+            for row in cur
+        ]
+
+    def get_session_records(self, session_id: int) -> list[FileRecord]:
+        """Get all records for a specific session.
+
+        Args:
+            session_id: The session ID to query.
+
+        Returns:
+            List of FileRecords for the session.
+        """
+        cur = self._conn.execute(
+            "SELECT * FROM file_records WHERE session_id = ?", (session_id,)
+        )
+        return [self._row_to_record(row) for row in cur]
+
     def log_action(
         self,
         session_id: int,
