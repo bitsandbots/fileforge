@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "fileforge"
-version = "0.1.0"
+version = "0.1.1"
 description = "AI-powered file organizer using local Ollama inference"
 license = {text = "MIT"}
 readme = "README.md"
