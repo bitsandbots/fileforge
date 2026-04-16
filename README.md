@@ -31,8 +31,8 @@ Requirements: Python 3.11+, [Ollama](https://ollama.com) (optional, for AI class
 # Scan a directory and preview what would change (no files moved)
 fileforge scan ~/Downloads --dry-run
 
-# Organize files using the default rules
-fileforge organize ~/Downloads
+# Scan and preview organization interactively
+fileforge scan ~/Downloads --interactive
 
 # Find duplicates
 fileforge dupes ~/Documents
