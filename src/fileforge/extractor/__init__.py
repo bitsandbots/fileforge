@@ -37,6 +37,15 @@ def extract_snippet(path: Path, max_chars: int = 2000) -> str | None:
         return None
     try:
         return module.extract(path, max_chars=max_chars)
+    except PermissionError:
+        _log.warning("Permission denied reading %s", path)
+        return None
+    except UnicodeDecodeError:
+        _log.debug("Cannot decode %s as text (binary file?)", path)
+        return None
+    except OSError as e:
+        _log.warning("OS error reading %s: %s", path, e)
+        return None
     except Exception:
-        _log.debug("Extraction failed for %s", path, exc_info=True)
+        _log.error("Unexpected error extracting %s", path, exc_info=True)
         return None

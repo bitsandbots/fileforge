@@ -61,10 +61,19 @@ def scan(
     for root in scan_paths:
         forgeignore = root / ".forgeignore"
         if forgeignore.exists():
-            for line in forgeignore.read_text().splitlines():
-                line = line.strip()
-                if line and not line.startswith("#"):
-                    all_patterns.append(line)
+            try:
+                for line in forgeignore.read_text().splitlines():
+                    line = line.strip()
+                    if line and not line.startswith("#"):
+                        all_patterns.append(line)
+            except PermissionError:
+                console.print(
+                    f"[yellow]Warning:[/yellow] cannot read {forgeignore}, skipping"
+                )
+            except UnicodeDecodeError:
+                console.print(
+                    f"[yellow]Warning:[/yellow] {forgeignore} is not valid UTF-8, skipping"
+                )
     scanner = Scanner(ignore_patterns=all_patterns, max_depth=cfg.general.max_depth)
 
     # Set up session DB
@@ -94,12 +103,20 @@ def scan(
                     digest = hash_file(record.path)
                     db.update_sha256(record.id, digest)
                     record = record.model_copy(update={"sha256": digest})
-                except (PermissionError, OSError):
+                except PermissionError:
+                    console.print(
+                        f"[yellow]Skipping (permission denied):[/yellow] {record.path}"
+                    )
+                    hash_skipped += 1
+                except OSError as e:
+                    console.print(
+                        f"[yellow]Skipping (OS error):[/yellow] {record.path} - {e}"
+                    )
                     hash_skipped += 1
             hashed_records.append(record)
         if hash_skipped:
             console.print(
-                f"[yellow]Warning:[/yellow] {hash_skipped} file(s) skipped (permission denied)"
+                f"[yellow]Warning:[/yellow] {hash_skipped} file(s) skipped due to errors"
             )
 
         # Detect exact duplicates
@@ -109,19 +126,37 @@ def scan(
         if not no_classify:
             console.print(f"Classifying {len(hashed_records)} files...")
             classified_records = []
+            classification_errors = 0
             for record in hashed_records:
-                snippet = extract_snippet(record.path, max_chars=2000)
-                category = classify_file(
-                    path=record.path,
-                    snippet=snippet,
-                    model=cfg.ai.classification_model,
-                    hints=cfg.ai.category_hints,
-                )
+                try:
+                    snippet = extract_snippet(record.path, max_chars=2000)
+                    category = classify_file(
+                        path=record.path,
+                        snippet=snippet,
+                        model=cfg.ai.classification_model,
+                        hints=cfg.ai.category_hints,
+                    )
+                except (ConnectionError, OSError) as e:
+                    console.print(
+                        f"[yellow]Warning:[/yellow] AI service error for {record.name}: {e}"
+                    )
+                    category = "Uncategorized"
+                    classification_errors += 1
+                except Exception as e:
+                    console.print(
+                        f"[yellow]Warning:[/yellow] Classification error for {record.name}: {e}"
+                    )
+                    category = "Uncategorized"
+                    classification_errors += 1
                 if record.id is not None:
                     db.update_category(record.id, category)
                 record = record.model_copy(update={"category": category})
                 classified_records.append(record)
             hashed_records = classified_records
+            if classification_errors:
+                console.print(
+                    f"[yellow]Note:[/yellow] {classification_errors} file(s) classified as Uncategorized due to errors"
+                )
 
         # Phase 2: Staleness detection
         stale_records = []
@@ -320,12 +355,20 @@ def organize(
                     digest = hash_file(record.path)
                     db.update_sha256(record.id, digest)
                     record = record.model_copy(update={"sha256": digest})
-                except (PermissionError, OSError):
+                except PermissionError:
+                    console.print(
+                        f"[yellow]Skipping (permission denied):[/yellow] {record.path}"
+                    )
+                    hash_skipped += 1
+                except OSError as e:
+                    console.print(
+                        f"[yellow]Skipping (OS error):[/yellow] {record.path} - {e}"
+                    )
                     hash_skipped += 1
             hashed_records.append(record)
         if hash_skipped:
             console.print(
-                f"[yellow]Warning:[/yellow] {hash_skipped} file(s) skipped (permission denied)"
+                f"[yellow]Warning:[/yellow] {hash_skipped} file(s) skipped due to errors"
             )
 
         # Detect exact duplicates
@@ -345,19 +388,37 @@ def organize(
         # AI classification
         console.print(f"Classifying {len(hashed_records)} files...")
         classified_records = []
+        classification_errors = 0
         for record in hashed_records:
-            snippet = extract_snippet(record.path, max_chars=2000)
-            category = classify_file(
-                path=record.path,
-                snippet=snippet,
-                model=cfg.ai.classification_model,
-                hints=cfg.ai.category_hints,
-            )
+            try:
+                snippet = extract_snippet(record.path, max_chars=2000)
+                category = classify_file(
+                    path=record.path,
+                    snippet=snippet,
+                    model=cfg.ai.classification_model,
+                    hints=cfg.ai.category_hints,
+                )
+            except (ConnectionError, OSError) as e:
+                console.print(
+                    f"[yellow]Warning:[/yellow] AI service error for {record.name}: {e}"
+                )
+                category = "Uncategorized"
+                classification_errors += 1
+            except Exception as e:
+                console.print(
+                    f"[yellow]Warning:[/yellow] Classification error for {record.name}: {e}"
+                )
+                category = "Uncategorized"
+                classification_errors += 1
             if record.id is not None:
                 db.update_category(record.id, category)
             record = record.model_copy(update={"category": category})
             classified_records.append(record)
         hashed_records = classified_records
+        if classification_errors:
+            console.print(
+                f"[yellow]Note:[/yellow] {classification_errors} file(s) classified as Uncategorized due to errors"
+            )
 
         # Detect stale files (phase 2 analysis)
         from fileforge.analysis.staleness import is_stale, matches_junk_pattern
@@ -650,12 +711,20 @@ def dupes(
                     digest = hash_file(record.path)
                     db.update_sha256(record.id, digest)
                     record = record.model_copy(update={"sha256": digest})
-                except (PermissionError, OSError):
+                except PermissionError:
+                    console.print(
+                        f"[yellow]Skipping (permission denied):[/yellow] {record.path}"
+                    )
+                    hash_skipped += 1
+                except OSError as e:
+                    console.print(
+                        f"[yellow]Skipping (OS error):[/yellow] {record.path} - {e}"
+                    )
                     hash_skipped += 1
             hashed_records.append(record)
         if hash_skipped:
             console.print(
-                f"[yellow]Warning:[/yellow] {hash_skipped} file(s) skipped (permission denied)"
+                f"[yellow]Warning:[/yellow] {hash_skipped} file(s) skipped due to errors"
             )
 
         # Detect exact duplicates
