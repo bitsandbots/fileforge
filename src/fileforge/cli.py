@@ -382,20 +382,22 @@ def organize(
         # Build action plan
         organized_base = Path.home() / "Organized"
         duplicates_base = organized_base / "Duplicates"
-        action_plan: list[tuple[Path, Path, str]] = []  # (source, dest, action_type)
+        action_plan: list[tuple[FileRecord, Path, Path, str]] = (
+            []
+        )  # (record, source, dest, action_type)
 
         for record in hashed_records:
             # Skip duplicates - they go to duplicates folder
             if record.is_duplicate:
                 dest = duplicates_base / record.category / record.name
-                action_plan.append((record.path, dest, "duplicate"))
+                action_plan.append((record, record.path, dest, "duplicate"))
             # Skip stale files - they go to trash
             elif record.is_stale:
-                action_plan.append((record.path, trash_dir, "stale"))
+                action_plan.append((record, record.path, trash_dir, "stale"))
             # Regular files - organize by category
             elif record.category:
                 dest = organized_base / record.category / record.name
-                action_plan.append((record.path, dest, "organize"))
+                action_plan.append((record, record.path, dest, "organize"))
 
         # Dry-run: just print the plan
         if dry_run:
@@ -404,7 +406,7 @@ def organize(
             )
             console.print("[dim](No files will be modified)[/dim]\n")
 
-            for source, dest, action_type in action_plan:
+            for rec, source, dest, action_type in action_plan:
                 if action_type == "stale":
                     console.print(f"  {source.name:40s} → [red]TRASH[/red] ({source})")
                 elif action_type == "duplicate":
@@ -424,14 +426,14 @@ def organize(
         stale_count = 0
         error_count = 0
 
-        for source, dest, action_type in action_plan:
+        for rec, source, dest, action_type in action_plan:
             try:
                 if action_type == "stale":
                     # Move to trash
                     trash_path = move_to_trash(source, trash_dir)
                     db.log_action(
                         session_id=session_id,
-                        record_id=record.id or 0,
+                        record_id=rec.id or 0,
                         action_type="trash",
                         source_path=source,
                         destination_path=trash_path,
@@ -443,7 +445,7 @@ def organize(
                     final_dest = move_file(source, dest, create_dirs=True)
                     db.log_action(
                         session_id=session_id,
-                        record_id=record.id or 0,
+                        record_id=rec.id or 0,
                         action_type="duplicate",
                         source_path=source,
                         destination_path=final_dest,
@@ -455,7 +457,7 @@ def organize(
                     final_dest = move_file(source, dest, create_dirs=True)
                     db.log_action(
                         session_id=session_id,
-                        record_id=record.id or 0,
+                        record_id=rec.id or 0,
                         action_type="organize",
                         source_path=source,
                         destination_path=final_dest,
@@ -467,7 +469,7 @@ def organize(
                 console.print(f"[red]Error moving {source.name}:[/red] {e}")
                 db.log_action(
                     session_id=session_id,
-                    record_id=record.id or 0,
+                    record_id=rec.id or 0,
                     action_type=action_type,
                     source_path=source,
                     destination_path=dest,
