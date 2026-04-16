@@ -37,6 +37,7 @@ dependencies = [
     "scipy>=1.13",
     "Jinja2>=3",
     "watchdog>=4",
+    "apscheduler>=3.10",
 ]
 
 [project.optional-dependencies]
