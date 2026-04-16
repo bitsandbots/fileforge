@@ -14,6 +14,7 @@ from fileforge.analysis.dedup import find_exact_duplicates, hash_file
 from fileforge.config import load_config
 from fileforge.db import SessionDB
 from fileforge.extractor import extract_snippet
+from fileforge.models import FileRecord
 from fileforge.report.generator import print_scan_summary
 from fileforge.scanner import Scanner
 
@@ -584,7 +585,9 @@ def dupes(
         False, "--move", help="Move duplicates to duplicates folder"
     ),
     dry_run: bool = typer.Option(False, "--dry-run", help="Preview without executing"),
-    duplicates_dir: Path = typer.Option(None, help="Duplicates folder for --move"),
+    duplicates_dir: Path | None = typer.Option(
+        None, help="Duplicates folder for --move"
+    ),
 ) -> None:
     """Find and handle duplicate files."""
     # Console created inside function so CliRunner captures output in tests
