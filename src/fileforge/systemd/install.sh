@@ -10,8 +10,8 @@ mkdir -p "$SERVICE_DIR"
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Copy templates, substituting user paths
-sed "s|%u|$USER|g; s|%h|$HOME|g" "$SCRIPT_DIR/fileforge-scan.service" > "$SERVICE_DIR/fileforge-scan.service"
+# Copy templates, substituting home directory paths
+sed "s|%h|$HOME|g" "$SCRIPT_DIR/fileforge-scan.service" > "$SERVICE_DIR/fileforge-scan.service"
 cp "$SCRIPT_DIR/fileforge-scan.timer" "$SERVICE_DIR/fileforge-scan.timer"
 
 # Enable and start timer

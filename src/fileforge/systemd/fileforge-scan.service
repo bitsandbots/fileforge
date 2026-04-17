@@ -4,8 +4,7 @@ After=network.target
 
 [Service]
 Type=oneshot
-User=%u
-ExecStart=/usr/local/bin/fileforge scan %h/Documents --phase-2
+ExecStart=%h/.local/bin/fileforge scan %h/Documents --phase-2
 StandardOutput=journal
 StandardError=journal
 
