@@ -72,7 +72,8 @@ def scan(
                 )
             except UnicodeDecodeError:
                 console.print(
-                    f"[yellow]Warning:[/yellow] {forgeignore} is not valid UTF-8, skipping"
+                    f"[yellow]Warning:[/yellow] {forgeignore} is not valid UTF-8, "
+                    "skipping"
                 )
     scanner = Scanner(ignore_patterns=all_patterns, max_depth=cfg.general.max_depth)
 

@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 import fnmatch
-from datetime import UTC, datetime, timedelta
-from pathlib import Path
+from datetime import UTC, datetime
 
 from fileforge.models import FileRecord
 
