@@ -74,11 +74,11 @@ def test_install_script_substitution() -> None:
         # Create a test service file with substitution
         test_service = Path(tmpdir) / "test.service"
 
-        # Run the substitution command from install.sh
-        sed_cmd = f'sed "s|%u|testuser|g; s|%h|/home/testuser|g" "{service_template}" > "{test_service}"'
+        # Run the substitution command from install.sh (matches current install.sh)
+        sed_cmd = f'sed "s|%h|/home/testuser|g" "{service_template}" > "{test_service}"'
         subprocess.run(sed_cmd, shell=True, check=True)
 
         # Verify substitution worked
         content = test_service.read_text()
-        assert "User=testuser" in content
+        assert "/home/testuser/.local/bin/fileforge" in content
         assert "/home/testuser/Documents" in content
