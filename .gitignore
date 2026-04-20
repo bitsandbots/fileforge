@@ -83,4 +83,9 @@ temp/
 .ipynb_checkpoints/
 *.ipynb
 
+# Session logs / scratch files (Claude Code exports)
+*-*.txt
+*.session.txt
+session-*.md
+
 # NOTE: fileforge.toml.example is intentionally NOT ignored — keep it tracked.
