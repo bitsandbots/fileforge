@@ -36,6 +36,9 @@ coverage.xml
 dmypy.json
 .pytype/
 
+# Linting
+.ruff_cache/
+
 # Editor files
 .vscode/
 .idea/
@@ -82,6 +85,11 @@ temp/
 # ipython / jupyter
 .ipynb_checkpoints/
 *.ipynb
+
+# Claude Code local files
+.claude/
+.remember/
+handoff.md
 
 # Session logs / scratch files (Claude Code exports)
 *-*.txt
