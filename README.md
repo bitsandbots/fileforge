@@ -25,7 +25,7 @@ pip install fileforge
 ### From source
 
 ```bash
-git clone https://github.com/coreconduit/fileforge.git
+git clone https://github.com/bitsandbots/fileforge.git
 cd fileforge
 bash scripts/install.sh
 ```
