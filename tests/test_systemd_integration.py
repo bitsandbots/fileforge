@@ -1,8 +1,8 @@
 """Tests for systemd integration templates and installation."""
 
-from pathlib import Path
 import subprocess
 import tempfile
+from pathlib import Path
 
 
 def test_service_template_exists() -> None:
@@ -88,9 +88,6 @@ def test_install_script_exists() -> None:
 def test_install_script_substitution() -> None:
     """Install script substitutes user paths correctly."""
     with tempfile.TemporaryDirectory() as tmpdir:
-        install_script = (
-            Path(__file__).parent.parent / "src/fileforge/systemd/install.sh"
-        )
         service_template = (
             Path(__file__).parent.parent
             / "src/fileforge/systemd/fileforge-scan.service"

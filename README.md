@@ -95,8 +95,10 @@ Run daily scans automatically:
 # Daily at 2 AM
 fileforge schedule ~/Documents --cron "0 2 * * *"
 
-# Or use systemd (Linux)
-bash src/fileforge/systemd/install.sh
+# Or use systemd (Linux) — scan timer + web UI server
+bash src/fileforge/systemd/install.sh           # both (default)
+bash src/fileforge/systemd/install.sh --scan    # scan timer only
+bash src/fileforge/systemd/install.sh --server  # web UI on http://127.0.0.1:8082
 ```
 
 ## Configuration
