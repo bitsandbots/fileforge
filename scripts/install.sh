@@ -182,8 +182,25 @@ printf "    docs/setup.md       — Detailed usage guide\n"
 printf "    docs/architecture.md — System design\n"
 printf "\n"
 printf "  ${BOLD}Automation:${RESET}\n"
-printf "    bash src/fileforge/systemd/install.sh — Set up daily scan timer\n"
+printf "    bash src/fileforge/systemd/install.sh         — Install scan timer + web server\n"
+printf "    bash src/fileforge/systemd/install.sh --scan  — Scan timer only\n"
+printf "    bash src/fileforge/systemd/install.sh --server — Web UI server only\n"
 printf "\n"
+
+# ── Offer systemd setup ───────────────────────────────────────────────────────
+if command -v systemctl &>/dev/null && [[ -d "$HOME/.config" || -w "$HOME" ]]; then
+    read -p "Install systemd user services now (scan timer + web server)? [y/N] " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+        SYSTEMD_INSTALLER="${SCRIPT_DIR}/../src/fileforge/systemd/install.sh"
+        if [[ -f "$SYSTEMD_INSTALLER" ]]; then
+            bash "$SYSTEMD_INSTALLER" --all || warn "Systemd install reported issues; check 'systemctl --user status'"
+        else
+            warn "Systemd installer not found at $SYSTEMD_INSTALLER"
+        fi
+    fi
+fi
 printf "  ${BOLD}Development:${RESET}\n"
 printf "    python -m pytest -q    — Run tests\n"
 printf "    bash scripts/check.sh  — Lint + format\n"

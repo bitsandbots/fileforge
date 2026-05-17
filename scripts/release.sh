@@ -56,6 +56,13 @@ PYPROJECT_FILE="pyproject.toml"
 [[ -f "$INIT_FILE" ]]     || fail "Not found: $INIT_FILE"
 [[ -f "$PYPROJECT_FILE" ]] || fail "Not found: $PYPROJECT_FILE"
 
+# ── Verify systemd templates are present (packaged with the wheel) ───────────
+SYSTEMD_DIR="src/fileforge/systemd"
+for unit in fileforge-scan.service fileforge-scan.timer fileforge-server.service install.sh; do
+    [[ -f "${SYSTEMD_DIR}/${unit}" ]] || fail "Missing systemd file: ${SYSTEMD_DIR}/${unit}"
+done
+success "Systemd templates present"
+
 # ── Check for uncommitted changes ─────────────────────────────────────────────
 step "Checking for uncommitted changes..."
 if [[ -n "$(git status --porcelain)" ]]; then

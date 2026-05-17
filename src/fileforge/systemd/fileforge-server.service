@@ -1,0 +1,15 @@
+[Unit]
+Description=FileForge Web UI Server
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/fileforge server --host 127.0.0.1 --port 8082
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target
