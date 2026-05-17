@@ -53,6 +53,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tech stack documentation with dependencies and requirements
 - Updated README with quick start guide
 
+## [0.1.4] — 2026-05-17
+
+### Added
+- `fileforge-server.service` systemd unit for the long-running web UI
+- `install.sh --scan|--server|--all` modes in the systemd installer
+- Top-level `scripts/install.sh` now offers to register systemd services
+- `scripts/release.sh` verifies systemd templates are present before packaging
+
 ## [Unreleased]
 
 ### Planned
