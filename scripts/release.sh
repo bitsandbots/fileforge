@@ -82,9 +82,9 @@ success "Working tree is clean"
 # ── Run tests ─────────────────────────────────────────────────────────────────
 step "Running test suite..."
 if [[ "$DRY_RUN" == "true" ]]; then
-    dryrun "python -m pytest -q"
+    dryrun "python3 -m pytest -q"
 else
-    if ! python -m pytest -q; then
+    if ! python3 -m pytest -q; then
         fail "Tests failed. Fix failing tests before releasing."
     fi
     success "All tests passed"
@@ -121,13 +121,13 @@ fi
 # ── Build package ─────────────────────────────────────────────────────────────
 step "Building package..."
 if [[ "$DRY_RUN" == "true" ]]; then
-    dryrun "python -m build"
+    dryrun "python3 -m build"
 else
-    if ! python -m build --version &>/dev/null 2>&1; then
+    if ! python3 -m build --version &>/dev/null 2>&1; then
         warn "build package not found. Installing..."
         pip install build -q
     fi
-    python -m build
+    python3 -m build
     success "Package built in dist/"
 fi
 
