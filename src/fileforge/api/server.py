@@ -13,6 +13,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from fileforge import __version__
+from fileforge.config import FileForgeConfig, load_config
 
 app = FastAPI(title="FileForge API", version=__version__)
 
@@ -27,6 +28,46 @@ app.add_middleware(
 FRONTEND_DIR = Path(__file__).parent.parent.parent.parent / "frontend"
 if FRONTEND_DIR.exists():
     app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="frontend")
+
+
+def _config_path() -> Path:
+    """User config path — prefer XDG, fall back to legacy ~/.fileforge location."""
+    xdg = Path.home() / ".config" / "fileforge" / "fileforge.toml"
+    legacy = Path.home() / ".fileforge" / "fileforge.toml"
+    if legacy.exists() and not xdg.exists():
+        return legacy
+    return xdg
+
+
+def _esc_toml(s: str) -> str:
+    """Escape a string for use inside TOML basic quotes (no newlines)."""
+    return s.replace("\\", "\\\\").replace('"', '\\"')
+
+
+def _to_toml(data: dict) -> str:
+    """Serialize a 2-level dict to TOML (covers all FileForgeConfig field types)."""
+    lines: list[str] = []
+    for section, values in data.items():
+        lines.append(f"[{section}]")
+        for key, val in values.items():
+            if isinstance(val, bool):
+                lines.append(f"{key} = {'true' if val else 'false'}")
+            elif isinstance(val, str):
+                if "\n" in val:
+                    # Multiline basic string; leading newline is trimmed by TOML spec
+                    body = val.replace("\\", "\\\\").replace('"""', '\\"\\"\\"')
+                    lines.append(f'{key} = """\n{body}"""')
+                else:
+                    lines.append(f'{key} = "{_esc_toml(val)}"')
+            elif isinstance(val, list):
+                items = ", ".join(
+                    f'"{_esc_toml(x)}"' if isinstance(x, str) else str(x) for x in val
+                )
+                lines.append(f"{key} = [{items}]")
+            else:
+                lines.append(f"{key} = {val}")
+        lines.append("")
+    return "\n".join(lines)
 
 
 class ScanRequest(BaseModel):
@@ -208,6 +249,29 @@ async def get_session(session_id: int) -> dict:
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/config")
+async def get_config() -> dict:
+    """Return the current FileForge configuration as JSON."""
+    path = _config_path()
+    try:
+        cfg = load_config(path) if path.exists() else FileForgeConfig()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to read config: {e}")
+    return cfg.model_dump()
+
+
+@app.post("/api/config")
+async def update_config(cfg: FileForgeConfig) -> dict[str, str]:
+    """Validate and persist configuration to fileforge.toml."""
+    path = _config_path()
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(_to_toml(cfg.model_dump()))
+    except OSError as e:
+        raise HTTPException(status_code=500, detail=f"Failed to write config: {e}")
+    return {"status": "saved", "path": str(path)}
 
 
 if __name__ == "__main__":

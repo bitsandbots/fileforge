@@ -219,6 +219,153 @@
             .search-box { min-width: 100%; }
             .stats-grid { grid-template-columns: repeat(2, 1fr); }
         }
+
+        /* ── Settings Modal ─────────────────────────────────────────────── */
+        .settings-modal {
+            max-width: 960px; display: flex; flex-direction: column;
+            max-height: 90vh;
+            border-top: 3px solid transparent;
+            border-image: linear-gradient(90deg, var(--blue), var(--orange)) 1;
+        }
+        .settings-layout {
+            flex: 1; display: grid; grid-template-columns: 200px 1fr;
+            min-height: 0; overflow: hidden;
+        }
+        .settings-nav {
+            background: rgba(0,0,0,0.18);
+            border-right: 1px solid rgba(255,255,255,0.07);
+            overflow-y: auto; padding: 0.5rem 0;
+        }
+        .settings-nav-group {
+            padding: 0.5rem 1rem 0.2rem;
+            font-size: 0.65rem; font-weight: 700; letter-spacing: 0.08em;
+            text-transform: uppercase; color: rgba(216,221,232,0.3);
+            font-family: 'Exo 2', sans-serif;
+        }
+        .settings-nav-item {
+            display: flex; align-items: center; gap: 0.625rem;
+            padding: 0.65rem 1.25rem; cursor: pointer;
+            color: rgba(216,221,232,0.62); font-size: 0.875rem;
+            border-left: 3px solid transparent;
+            transition: background 0.15s, color 0.15s, border-color 0.15s;
+            user-select: none;
+        }
+        .settings-nav-item:hover { background: rgba(255,255,255,0.045); color: var(--silver); }
+        .settings-nav-item.active {
+            border-left-color: var(--blue);
+            background: rgba(43,125,233,0.1); color: #fff; font-weight: 500;
+        }
+        .settings-nav-icon { width: 18px; text-align: center; font-size: 0.9rem; flex-shrink: 0; }
+        .settings-panel {
+            padding: 1.5rem 1.75rem; overflow-y: auto;
+            scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.1) transparent;
+        }
+        .settings-panel::-webkit-scrollbar { width: 5px; }
+        .settings-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 3px; }
+        .settings-section-title {
+            display: flex; align-items: center; gap: 0.625rem;
+            font-family: 'Exo 2', sans-serif; font-size: 0.95rem; font-weight: 700;
+            color: #fff; margin-bottom: 1.25rem; padding-bottom: 0.625rem;
+            border-bottom: 1px solid rgba(43,125,233,0.35);
+        }
+        .form-row {
+            display: grid; grid-template-columns: 160px 1fr;
+            gap: 1.25rem; align-items: start;
+            padding: 0.8rem 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+        .form-row:last-child { border-bottom: none; }
+        .form-label { color: var(--silver); font-size: 0.875rem; padding-top: 0.45rem; line-height: 1.3; }
+        .form-label small {
+            display: block; color: rgba(216,221,232,0.38);
+            font-size: 0.72rem; margin-top: 0.275rem; line-height: 1.35;
+        }
+        .form-input, .form-select {
+            width: 100%; padding: 0.5rem 0.75rem;
+            background: rgba(0,0,0,0.28); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 6px; color: #fff;
+            font-family: 'IBM Plex Mono', monospace; font-size: 0.875rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .form-input:focus, .form-select:focus {
+            outline: none; border-color: var(--blue); background: rgba(0,0,0,0.38);
+            box-shadow: 0 0 0 3px rgba(43,125,233,0.15);
+        }
+        .form-input::placeholder { color: rgba(216,221,232,0.25); }
+        .form-select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath fill='%23d8dde8' d='M5 6L0 0h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 0.75rem center;
+            padding-right: 2.25rem; cursor: pointer; appearance: none;
+        }
+        .form-select option { background: var(--navy); }
+        .form-textarea {
+            width: 100%; padding: 0.5rem 0.75rem;
+            background: rgba(0,0,0,0.28); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 6px; color: #fff;
+            font-family: 'IBM Plex Mono', monospace; font-size: 0.8rem;
+            line-height: 1.6; resize: vertical; min-height: 88px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .form-textarea:focus {
+            outline: none; border-color: var(--blue); background: rgba(0,0,0,0.38);
+            box-shadow: 0 0 0 3px rgba(43,125,233,0.15);
+        }
+        .toggle-row { display: flex; align-items: center; gap: 0.75rem; padding-top: 0.3rem; }
+        .toggle-switch { position: relative; width: 42px; height: 22px; flex-shrink: 0; }
+        .toggle-switch input { display: none; }
+        .toggle-track {
+            position: absolute; inset: 0;
+            background: rgba(255,255,255,0.14); border-radius: 22px;
+            cursor: pointer; transition: background 0.2s;
+        }
+        .toggle-track::before {
+            content: ''; position: absolute;
+            width: 16px; height: 16px; left: 3px; top: 3px;
+            background: rgba(255,255,255,0.7); border-radius: 50%; transition: transform 0.2s;
+        }
+        .toggle-switch input:checked + .toggle-track { background: var(--blue); }
+        .toggle-switch input:checked + .toggle-track::before { transform: translateX(20px); background: #fff; }
+        .toggle-label { font-size: 0.85rem; color: rgba(216,221,232,0.7); min-width: 52px; }
+        .range-wrap { display: flex; align-items: center; gap: 0.875rem; padding-top: 0.35rem; }
+        .range-wrap input[type="range"] { flex: 1; accent-color: var(--blue); cursor: pointer; }
+        .range-val {
+            min-width: 42px; text-align: right;
+            font-family: 'IBM Plex Mono', monospace; font-size: 0.875rem;
+            color: var(--blue); font-weight: 500;
+        }
+        .settings-footer {
+            display: flex; align-items: center; gap: 0.75rem;
+            padding: 0.875rem 1.5rem;
+            border-top: 1px solid rgba(255,255,255,0.07);
+            background: rgba(0,0,0,0.12); flex-shrink: 0;
+        }
+        .settings-status {
+            flex: 1; font-family: 'IBM Plex Mono', monospace; font-size: 0.8rem;
+            color: rgba(216,221,232,0.45);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            transition: color 0.2s;
+        }
+        .settings-status.ok   { color: var(--success); }
+        .settings-status.err  { color: var(--danger); }
+        .settings-status.warn { color: var(--warning); }
+        @media (max-width: 680px) {
+            .settings-layout { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+            .settings-nav {
+                display: flex; overflow-x: auto; overflow-y: hidden;
+                border-right: none; border-bottom: 1px solid rgba(255,255,255,0.07);
+                padding: 0; scrollbar-width: none;
+            }
+            .settings-nav::-webkit-scrollbar { display: none; }
+            .settings-nav-group { display: none; }
+            .settings-nav-item {
+                flex-shrink: 0; flex-direction: column; gap: 0.2rem;
+                border-left: none; border-bottom: 3px solid transparent;
+                padding: 0.6rem 1rem; font-size: 0.75rem; text-align: center;
+            }
+            .settings-nav-item.active { border-left-color: transparent; border-bottom-color: var(--blue); }
+            .settings-nav-icon { width: auto; font-size: 1.1rem; }
+            .form-row { grid-template-columns: 1fr; gap: 0.4rem; }
+            .form-label { padding-top: 0; }
+        }
     </style>
 </head>
 <body>
@@ -284,7 +431,36 @@
     </main>
 
     <div class="modal-overlay" id="fileModal"><div class="modal"><div class="modal-header"><h2 id="modalTitle">File Details</h2><button class="close-btn" onclick="closeModal()">&times;</button></div><div class="modal-body" id="modalBody"><p class="loading">Select a file to view details</p></div></div></div>
-    <div class="modal-overlay" id="settingsModal"><div class="modal"><div class="modal-header"><h2>Settings</h2><button class="close-btn" onclick="closeSettings()">&times;</button></div><div class="modal-body" id="settingsBody"><p class="loading">Loading settings...</p></div></div></div>
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal settings-modal">
+            <div class="modal-header">
+                <h2>Settings</h2>
+                <button class="close-btn" onclick="closeSettings()" aria-label="Close">&times;</button>
+            </div>
+            <div class="settings-layout">
+                <nav class="settings-nav" id="settingsNav">
+                    <div class="settings-nav-group">Configuration</div>
+                    <div class="settings-nav-item active" onclick="switchSection('general')"><span class="settings-nav-icon">⚙</span><span>General</span></div>
+                    <div class="settings-nav-item" onclick="switchSection('ai')"><span class="settings-nav-icon">🤖</span><span>AI &amp; Models</span></div>
+                    <div class="settings-nav-item" onclick="switchSection('duplicates')"><span class="settings-nav-icon">📋</span><span>Duplicates</span></div>
+                    <div class="settings-nav-group">Rules</div>
+                    <div class="settings-nav-item" onclick="switchSection('staleness')"><span class="settings-nav-icon">🗓</span><span>Staleness</span></div>
+                    <div class="settings-nav-item" onclick="switchSection('ignore')"><span class="settings-nav-icon">🚫</span><span>Ignore Rules</span></div>
+                    <div class="settings-nav-group">Automation</div>
+                    <div class="settings-nav-item" onclick="switchSection('watch')"><span class="settings-nav-icon">👁</span><span>Watch</span></div>
+                    <div class="settings-nav-item" onclick="switchSection('schedule')"><span class="settings-nav-icon">⏰</span><span>Schedule</span></div>
+                </nav>
+                <div class="settings-panel" id="settingsPanel">
+                    <div class="empty-state" style="padding:3rem 2rem"><p>Loading…</p></div>
+                </div>
+            </div>
+            <div class="settings-footer">
+                <span class="settings-status" id="settingsStatus"></span>
+                <button class="btn btn-secondary btn-sm" onclick="closeSettings()">Cancel</button>
+                <button class="btn btn-primary btn-sm" onclick="saveSettings()"><span>💾</span> Save Settings</button>
+            </div>
+        </div>
+    </div>
     <div class="toast-container" id="toastContainer"></div>
 
     <script>
@@ -513,13 +689,192 @@
 
         function closeModal() { document.getElementById('fileModal').classList.remove('active'); }
 
-        function showSettings() {
-            document.getElementById('settingsBody').innerHTML = '<div class="detail-row"><div class="detail-label">Output Directory</div><div class="detail-value"><input type="text" value="' + (localStorage.getItem('fileforge_output_dir') || '~/.fileforge') + '" style="width: 100%; padding: 0.5rem; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: var(--light); border-radius: 4px;"></div></div><div class="detail-row"><div class="detail-label">AI Model</div><div class="detail-value"><select style="width: 100%; padding: 0.5rem; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: var(--light); border-radius: 4px;"><option>llama3:latest</option><option>qwen2.5:latest</option><option>mistral:latest</option></select></div></div><div class="detail-row"><div class="detail-label">Classification Threshold</div><div class="detail-value"><input type="range" min="0" max="100" value="50" style="width: 100%;"><span>50%</span></div></div><div style="margin-top: 2rem; display: flex; gap: 1rem; justify-content: flex-end;"><button class="btn btn-secondary" onclick="closeSettings()">Cancel</button><button class="btn btn-primary" onclick="saveSettings()">Save Settings</button></div>';
+        // ── Settings ─────────────────────────────────────────────────────
+        var FF_SECTIONS = ['general','ai','duplicates','staleness','ignore','watch','schedule'];
+        var ffSettings = null;
+        var ffSection = 'general';
+
+        function getDefaultSettings() {
+            return {
+                general: { scan_dirs: ['~/Documents'], output_dir: '~/.fileforge', max_depth: -1, max_extract_size: 52428800 },
+                ai: { classification_model: 'qwen3:4b', embedding_model: 'nomic-embed-text', ollama_url: 'http://localhost:11434', snippet_length: 2000, category_hints: '' },
+                duplicates: { similarity_threshold: 0.92, semantic_dedup: true },
+                staleness: { stale_days: 365, detect_versions: true, junk_patterns: ['Thumbs.db','.DS_Store','desktop.ini','~$*','*.tmp'], temp_patterns: ['*.bak','*.swp','*.log','*.orig'] },
+                ignore: { patterns: ['.git','node_modules','__pycache__','.venv','*.iso','*.vmdk'] },
+                watch: { watch_dirs: ['~/Documents'], scan_delay_seconds: 60, auto_act: false, debounce_patterns: ['*.tmp','*.swp','~*'] },
+                schedule: { enabled: false, schedule_cron: '0 2 * * *', run_phase_2: true, auto_act: false }
+            };
+        }
+
+        function setStatus(msg, cls) {
+            var el = document.getElementById('settingsStatus');
+            el.textContent = msg;
+            el.className = 'settings-status' + (cls ? ' ' + cls : '');
+        }
+
+        async function showSettings() {
+            ffSettings = getDefaultSettings();
+            ffSection = 'general';
+            syncNavActive();
+            document.getElementById('settingsPanel').innerHTML = '<div class="empty-state" style="padding:3rem 2rem"><p>Loading…</p></div>';
+            document.getElementById('settingsStatus').textContent = '';
+            document.getElementById('settingsStatus').className = 'settings-status';
             document.getElementById('settingsModal').classList.add('active');
+            try {
+                var r = await fetch('/api/config');
+                if (r.ok) { ffSettings = await r.json(); setStatus('Loaded from server', 'ok'); }
+                else { setStatus('Server error — using defaults', 'warn'); }
+            } catch (_) {
+                var stored = localStorage.getItem('fileforge_settings');
+                if (stored) { try { ffSettings = JSON.parse(stored); } catch (_) {} }
+                setStatus('Server offline — using local settings', 'warn');
+            }
+            renderSettingsPanel();
+        }
+
+        function syncNavActive() {
+            document.querySelectorAll('#settingsNav .settings-nav-item').forEach(function(el, i) {
+                el.classList.toggle('active', FF_SECTIONS[i] === ffSection);
+            });
+        }
+
+        function switchSection(id) {
+            flushForm();
+            ffSection = id;
+            syncNavActive();
+            renderSettingsPanel();
+        }
+
+        function flushForm() {
+            if (!ffSettings) return;
+            document.getElementById('settingsPanel').querySelectorAll('[data-cfg]').forEach(function(el) {
+                var parts = el.getAttribute('data-cfg').split('.');
+                var sec = parts[0], key = parts[1], type = parts[2];
+                if (!ffSettings[sec]) return;
+                if (type === 'bool') {
+                    ffSettings[sec][key] = el.checked;
+                } else if (type === 'int') {
+                    var n = parseInt(el.value, 10);
+                    if (!isNaN(n)) ffSettings[sec][key] = n;
+                } else if (type === 'float') {
+                    var f = parseFloat(el.value);
+                    if (!isNaN(f)) ffSettings[sec][key] = f;
+                } else if (type === 'list') {
+                    ffSettings[sec][key] = el.value.split('\n').map(function(s) { return s.trim(); }).filter(Boolean);
+                } else {
+                    ffSettings[sec][key] = el.value;
+                }
+            });
+        }
+
+        function renderSettingsPanel() {
+            if (!ffSettings) return;
+            var c = ffSettings, html = '';
+            if (ffSection === 'general') {
+                html = sTitle('⚙ General') +
+                    tRow('output_dir','general','Output Directory', c.general.output_dir,'str','Where FileForge stores its database and reports') +
+                    tRow('max_depth','general','Max Scan Depth', c.general.max_depth,'int','-1 scans all subdirectories; 0 scans the root only') +
+                    tRow('max_extract_size','general','Max Extract Size (B)', c.general.max_extract_size,'int','Content extraction is skipped above this file size');
+            } else if (ffSection === 'ai') {
+                html = sTitle('🤖 AI & Models') +
+                    tRow('ollama_url','ai','Ollama URL', c.ai.ollama_url,'str','REST endpoint for your Ollama instance') +
+                    tRow('classification_model','ai','Classification Model', c.ai.classification_model,'str','Ollama model used to classify files by content') +
+                    tRow('embedding_model','ai','Embedding Model', c.ai.embedding_model,'str','Ollama model used for near-duplicate embedding vectors') +
+                    tRow('snippet_length','ai','Snippet Length (chars)', c.ai.snippet_length,'int','Characters of file content sent to the classifier') +
+                    tRow('category_hints','ai','Category Hints', c.ai.category_hints,'str','Optional extra instructions appended to the classification prompt');
+            } else if (ffSection === 'duplicates') {
+                html = sTitle('📋 Duplicates') +
+                    rRow('similarity_threshold','duplicates','Similarity Threshold', c.duplicates.similarity_threshold,0,1,0.01,'Cosine similarity cutoff for near-duplicate detection (0–1)') +
+                    bRow('semantic_dedup','duplicates','Semantic Dedup', c.duplicates.semantic_dedup,'Use embedding vectors to detect near-duplicates (requires nomic-embed-text)');
+            } else if (ffSection === 'staleness') {
+                html = sTitle('🗓 Staleness') +
+                    tRow('stale_days','staleness','Stale Threshold (days)', c.staleness.stale_days,'int','Files unmodified for longer than this are flagged stale') +
+                    bRow('detect_versions','staleness','Detect Versions', c.staleness.detect_versions,'Flag older file versions when a newer versioned file exists alongside') +
+                    lRow('junk_patterns','staleness','Junk Patterns', c.staleness.junk_patterns,'Glob patterns, one per line — matched files are marked for trash') +
+                    lRow('temp_patterns','staleness','Temp Patterns', c.staleness.temp_patterns,'Backup and temp file patterns, one per line');
+            } else if (ffSection === 'ignore') {
+                html = sTitle('🚫 Ignore Rules') +
+                    lRow('patterns','ignore','Ignored Patterns', c.ignore.patterns,'Directories and glob patterns to skip entirely, one per line');
+            } else if (ffSection === 'watch') {
+                html = sTitle('👁 Watch Mode') +
+                    lRow('watch_dirs','watch','Watch Directories', c.watch.watch_dirs,'Directories to monitor for changes, one per line') +
+                    tRow('scan_delay_seconds','watch','Scan Delay (s)', c.watch.scan_delay_seconds,'int','Wait this many seconds after the last change before scanning') +
+                    bRow('auto_act','watch','Auto-Act', c.watch.auto_act,'Automatically execute organize actions without confirmation') +
+                    lRow('debounce_patterns','watch','Debounce Patterns', c.watch.debounce_patterns,'Patterns that never trigger a scan, one per line');
+            } else if (ffSection === 'schedule') {
+                html = sTitle('⏰ Schedule') +
+                    bRow('enabled','schedule','Enable Scheduled Scans', c.schedule.enabled,'Run automated scans on the configured cron schedule') +
+                    tRow('schedule_cron','schedule','Cron Expression', c.schedule.schedule_cron,'str','Standard 5-field cron — default runs at 02:00 daily') +
+                    bRow('run_phase_2','schedule','Run Phase 2 Analysis', c.schedule.run_phase_2,'Include embedding and staleness analysis in scheduled runs') +
+                    bRow('auto_act','schedule','Auto-Act on Schedule', c.schedule.auto_act,'Automatically execute organize actions from scheduled scans');
+            }
+            document.getElementById('settingsPanel').innerHTML = html;
+        }
+
+        function sTitle(t) { return '<div class="settings-section-title">' + t + '</div>'; }
+
+        function tRow(key, sec, label, value, type, hint) {
+            var v = (value === null || value === undefined) ? '' : String(value);
+            return '<div class="form-row"><div class="form-label">' + escapeHtml(label) +
+                '<small>' + escapeHtml(hint) + '</small></div><div>' +
+                '<input class="form-input" data-cfg="' + sec + '.' + key + '.' + type +
+                '" value="' + escapeHtml(v) + '"></div></div>';
+        }
+
+        function lRow(key, sec, label, values, hint) {
+            var lines = Array.isArray(values) ? values.join('\n') : '';
+            return '<div class="form-row"><div class="form-label">' + escapeHtml(label) +
+                '<small>' + escapeHtml(hint) + '</small></div><div>' +
+                '<textarea class="form-textarea" data-cfg="' + sec + '.' + key + '.list">' +
+                escapeHtml(lines) + '</textarea></div></div>';
+        }
+
+        function bRow(key, sec, label, value, hint) {
+            var chk = value ? 'checked' : '';
+            var lbl = value ? 'Enabled' : 'Disabled';
+            return '<div class="form-row"><div class="form-label">' + escapeHtml(label) +
+                '<small>' + escapeHtml(hint) + '</small></div><div><div class="toggle-row">' +
+                '<label class="toggle-switch"><input type="checkbox" data-cfg="' + sec + '.' + key + '.bool" ' + chk +
+                ' onchange="this.parentElement.nextElementSibling.textContent=this.checked?\'Enabled\':\'Disabled\'">' +
+                '<span class="toggle-track"></span></label>' +
+                '<span class="toggle-label">' + lbl + '</span></div></div></div>';
+        }
+
+        function rRow(key, sec, label, value, min, max, step, hint) {
+            var pct = Math.round(value * 100) + '%';
+            return '<div class="form-row"><div class="form-label">' + escapeHtml(label) +
+                '<small>' + escapeHtml(hint) + '</small></div><div><div class="range-wrap">' +
+                '<input type="range" min="' + min + '" max="' + max + '" step="' + step + '" value="' + value +
+                '" data-cfg="' + sec + '.' + key + '.float"' +
+                ' oninput="this.nextElementSibling.textContent=Math.round(this.value*100)+\'%\'">' +
+                '<span class="range-val">' + pct + '</span></div></div></div>';
+        }
+
+        async function saveSettings() {
+            flushForm();
+            try {
+                var r = await fetch('/api/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(ffSettings)
+                });
+                if (r.ok) {
+                    var data = await r.json();
+                    setStatus('Saved to ' + data.path, 'ok');
+                    showToast('Settings saved', 'success');
+                    setTimeout(closeSettings, 700);
+                } else {
+                    var err = await r.json();
+                    setStatus((err.detail || 'Save failed'), 'err');
+                }
+            } catch (_) {
+                localStorage.setItem('fileforge_settings', JSON.stringify(ffSettings));
+                setStatus('Server offline — saved to browser storage', 'warn');
+                showToast('Saved locally', 'warning');
+            }
         }
 
         function closeSettings() { document.getElementById('settingsModal').classList.remove('active'); }
-        function saveSettings() { showToast('Settings saved', 'success'); closeSettings(); }
         function moveFile(id) { var file = files.find(function(f) { return f.id === id; }); if (file) showToast('File would be moved to organized folder: ' + file.name, 'success'); }
         function archiveFile(id) { var file = files.find(function(f) { return f.id === id; }); if (file) showToast('File archived: ' + file.name, 'success'); }
         function trashFile(id) { var file = files.find(function(f) { return f.id === id; }); if (file) showToast('File sent to trash: ' + file.name, 'warning'); }
