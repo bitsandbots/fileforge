@@ -220,6 +220,28 @@
             .stats-grid { grid-template-columns: repeat(2, 1fr); }
         }
 
+        /* ── Path Bar & Browser Modal ──────────────────────────────────── */
+        .path-bar { display: flex; gap: 0.5rem; align-items: center; width: 100%; max-width: 540px; margin: 0 auto; }
+        .path-input { flex: 1; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.15); color: var(--silver); padding: 0.55rem 0.85rem; border-radius: 6px; font-family: 'IBM Plex Mono', monospace; font-size: 0.85rem; }
+        .path-input:focus { outline: none; border-color: var(--blue); }
+        .path-input::placeholder { color: rgba(216,221,232,0.25); }
+        .browser-modal { max-width: 560px; display: flex; flex-direction: column; max-height: 90vh; }
+        .browser-breadcrumb { display: flex; flex-wrap: wrap; align-items: center; gap: 0.2rem; padding: 0.6rem 0.85rem; background: rgba(0,0,0,0.25); border-radius: 6px; margin-bottom: 0.85rem; font-family: 'IBM Plex Mono', monospace; font-size: 0.78rem; min-height: 2.2rem; }
+        .browser-breadcrumb .bc-sep { color: rgba(216,221,232,0.3); margin: 0 0.15rem; }
+        .browser-breadcrumb button { background: none; border: none; color: var(--blue); cursor: pointer; padding: 0 0.15rem; font-family: inherit; font-size: inherit; line-height: 1.4; }
+        .browser-breadcrumb button:hover { text-decoration: underline; }
+        .dir-list { max-height: 300px; overflow-y: auto; border: 1px solid rgba(255,255,255,0.07); border-radius: 6px; }
+        .dir-item { display: flex; align-items: center; gap: 0.6rem; padding: 0.55rem 0.9rem; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.04); transition: background 0.12s; }
+        .dir-item:last-child { border-bottom: none; }
+        .dir-item:hover { background: rgba(43,125,233,0.12); }
+        .dir-item-name { flex: 1; color: var(--silver); font-size: 0.88rem; }
+        .dir-nav-btn { background: none; border: none; color: rgba(216,221,232,0.35); font-size: 1rem; cursor: pointer; padding: 0 0.2rem; line-height: 1; flex-shrink: 0; }
+        .dir-nav-btn:hover { color: var(--blue); }
+        .dir-empty { padding: 1.5rem; text-align: center; color: rgba(216,221,232,0.35); font-size: 0.85rem; }
+        .browser-modal .modal-body { flex: 1; min-height: 0; overflow-y: auto; }
+        .browser-footer { display: flex; justify-content: space-between; align-items: center; padding: 0.9rem 1.5rem; border-top: 1px solid rgba(255,255,255,0.07); flex-shrink: 0; }
+        .browser-cur-path { font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; color: rgba(216,221,232,0.45); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 260px; }
+
         /* ── Settings Modal ─────────────────────────────────────────────── */
         .settings-modal {
             max-width: 960px; display: flex; flex-direction: column;
@@ -376,7 +398,7 @@
                 <div class="brand-text"><h1>FileForge<span>Organizer</span></h1></div>
             </div>
             <div class="nav-actions">
-                <button class="btn btn-primary" onclick="uploadFiles()"><span>📁</span> Scan Files</button>
+                <button class="btn btn-primary" onclick="openBrowser()"><span>📁</span> Scan Files</button>
                 <button class="btn btn-secondary" onclick="showSettings()"><span>⚙️</span> Settings</button>
             </div>
         </div>
@@ -393,11 +415,12 @@
         <div class="upload-section" id="uploadArea">
             <div class="upload-content">
                 <div class="upload-icon">📁</div>
-                <div class="upload-text">Scan Directories</div>
-                <div class="upload-sub">Select a directory to scan and organize your files</div>
-                <div>
-                    <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()"><span>📂</span> Choose Directory</button>
-                    <input type="file" id="fileInput" class="file-input" webkitdirectory multiple onchange="handleDirectorySelect(this)">
+                <div class="upload-text">Scan a Directory</div>
+                <div class="upload-sub">Enter a path or browse your filesystem</div>
+                <div class="path-bar">
+                    <input type="text" id="scanPath" class="path-input" placeholder="/home/user/Documents">
+                    <button class="btn btn-secondary" onclick="openBrowser()"><span>🗂</span> Browse</button>
+                    <button class="btn btn-primary" onclick="startScan()"><span>🔍</span> Scan</button>
                 </div>
                 <div style="margin-top: 1rem; display: flex; gap: 1rem; align-items: center;">
                     <label style="color: var(--silver); opacity: 0.7;"><input type="checkbox" id="includeSubdirs" checked> Include subdirectories</label>
@@ -461,6 +484,27 @@
             </div>
         </div>
     </div>
+    <div class="modal-overlay" id="browserModal">
+        <div class="modal browser-modal">
+            <div class="modal-header">
+                <h2>Browse for Directory</h2>
+                <button class="close-btn" onclick="closeBrowser()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="browser-breadcrumb" id="browserBreadcrumb"></div>
+                <div class="dir-list" id="dirList">
+                    <div class="dir-empty">Loading…</div>
+                </div>
+            </div>
+            <div class="browser-footer">
+                <div class="browser-cur-path" id="browserCurPath"></div>
+                <div style="display:flex;gap:0.5rem;">
+                    <button class="btn btn-secondary btn-sm" onclick="closeBrowser()">Cancel</button>
+                    <button class="btn btn-primary btn-sm" onclick="selectDirectory()">Select This Folder</button>
+                </div>
+            </div>
+        </div>
+    </div>
     <div class="toast-container" id="toastContainer"></div>
 
     <script>
@@ -489,81 +533,178 @@
             setTimeout(function() { toast.remove(); }, 3000);
         }
 
-        function uploadFiles() {
-            if (confirm('Simulate scan with sample files?')) simulateScan();
+        // ── Directory Browser ─────────────────────────────────────────────
+        var browserCurrentPath = '';
+
+        function openBrowser() {
+            document.getElementById('browserModal').classList.add('active');
+            var cur = document.getElementById('scanPath').value.trim();
+            fetchDirectory(cur || '~');
         }
 
-        function handleDirectorySelect(input) {
-            const filesList = Array.from(input.files).map(function(f) {
-                return { path: f.webkitRelativePath || f.name, name: f.name, size: f.size, lastModified: f.lastModified, type: f.type };
-            });
-            simulateScan(filesList);
+        function closeBrowser() {
+            document.getElementById('browserModal').classList.remove('active');
         }
 
-        function simulateScan(filesList) {
-            if (typeof filesList === 'undefined') filesList = [];
-            document.getElementById('progressContainer').style.display = 'block';
-            const progressBar = document.getElementById('progressBar');
-            progressBar.style.width = '0%';
-
-            if (filesList.length === 0) {
-                filesList = [
-                    { path: '/home/user/documents/report.pdf', name: 'report.pdf', size: 2456789, lastModified: Date.now() - 86400000 * 10, type: 'application/pdf' },
-                    { path: '/home/user/documents/notes.docx', name: 'notes.docx', size: 124578, lastModified: Date.now() - 86400000 * 5, type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' },
-                    { path: '/home/user/pics/vacation.jpg', name: 'vacation.jpg', size: 3456789, lastModified: Date.now() - 86400000 * 2, type: 'image/jpeg' },
-                    { path: '/home/user/pics/vacation-copy.jpg', name: 'vacation-copy.jpg', size: 3456789, lastModified: Date.now() - 86400000 * 2, type: 'image/jpeg' },
-                    { path: '/home/user/projects/code.py', name: 'code.py', size: 89012, lastModified: Date.now() - 86400000 * 1, type: 'text/x-python' },
-                    { path: '/home/user/projects/utils.js', name: 'utils.js', size: 45678, lastModified: Date.now() - 86400000 * 3, type: 'text/javascript' },
-                    { path: '/home/user/music/song.mp3', name: 'song.mp3', size: 5678901, lastModified: Date.now() - 86400000 * 15, type: 'audio/mpeg' },
-                    { path: '/home/user/downloads/archive.tar.gz', name: 'archive.tar.gz', size: 123456789, lastModified: Date.now() - 86400000 * 30, type: 'application/gzip' },
-                    { path: '/home/user/temp/cache.tmp', name: 'cache.tmp', size: 0, lastModified: Date.now() - 86400000 * 2, type: 'application/octet-stream' },
-                    { path: '/home/user/videos/movie.mp4', name: 'movie.mp4', size: 1234567890, lastModified: Date.now() - 86400000 * 1, type: 'video/mp4' },
-                    { path: '/home/user/docs/thesis.pdf', name: 'thesis.pdf', size: 5678901, lastModified: Date.now() - 86400000 * 45, type: 'application/pdf' },
-                    { path: '/home/user/docs/thesis-v2.pdf', name: 'thesis-v2.pdf', size: 6123456, lastModified: Date.now() - 86400000 * 3, type: 'application/pdf' },
-                ];
+        async function fetchDirectory(path) {
+            document.getElementById('dirList').innerHTML = '<div class="dir-empty">Loading…</div>';
+            try {
+                var r = await fetch('/api/browse?path=' + encodeURIComponent(path));
+                if (!r.ok) { document.getElementById('dirList').innerHTML = '<div class="dir-empty">Cannot read directory.</div>'; return; }
+                var data = await r.json();
+                browserCurrentPath = data.path;
+                document.getElementById('browserCurPath').textContent = data.path;
+                renderBreadcrumb(data.path, data.parent);
+                renderDirList(data.entries, data.parent);
+            } catch (e) {
+                document.getElementById('dirList').innerHTML = '<div class="dir-empty">Server unavailable.</div>';
             }
+        }
 
-            let progress = 0;
-            const interval = setInterval(function() {
-                progress += 10;
-                progressBar.style.width = progress + '%';
-                if (progress >= 100) {
-                    clearInterval(interval);
-                    progressBar.style.width = '100%';
-                    document.getElementById('progressContainer').style.display = 'none';
+        // Serialize a value as a JS literal that is safe inside a double-quoted HTML attribute.
+        // JSON.stringify wraps strings in " which would prematurely close onclick="...".
+        // Replacing " with &quot; lets the HTML parser decode it back to " before JS executes.
+        function jsq(val) { return JSON.stringify(val).replace(/"/g, '&quot;'); }
 
-                    files = filesList.map(function(f) {
-                        var ext = f.name.split('.').pop().toLowerCase();
-                        var category = 'Other';
-                        if (['pdf', 'doc', 'docx', 'txt', 'rtf', 'odt'].includes(ext)) category = 'Documents';
-                        else if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'bmp'].includes(ext)) category = 'Images';
-                        else if (['mp3', 'wav', 'ogg', 'flac'].includes(ext)) category = 'Audio';
-                        else if (['mp4', 'avi', 'mov', 'mkv', 'webm'].includes(ext)) category = 'Video';
-                        else if (['zip', 'tar', 'gz', 'rar', '7z', 'xz'].includes(ext)) category = 'Archives';
-                        else if (['py', 'js', 'ts', 'jsx', 'tsx', 'java', 'c', 'cpp', 'h', 'go', 'rs', 'rb', 'php'].includes(ext)) category = 'Code';
-                        else if (['json', 'csv', 'xml', 'yaml', 'yml', 'toml'].includes(ext)) category = 'Data';
-
-                        var isDuplicate = false, duplicate_of = null;
-                        filesList.forEach(function(other) {
-                            if (other !== f && other.size === f.size && other.name !== f.name) {
-                                isDuplicate = true; duplicate_of = other.path;
-                            }
-                        });
-
-                        var daysOld = (Date.now() - f.lastModified) / (1000 * 60 * 60 * 24);
-                        var isStale = daysOld > 30 || ext === 'tmp';
-
-                        return {
-                            id: Math.random().toString(36).substr(2, 9), path: f.path, name: f.name,
-                            size_bytes: f.size, modified_at: new Date(f.lastModified).toISOString(),
-                            category: category, is_duplicate: isDuplicate, duplicate_of: isDuplicate ? duplicate_of : null,
-                            is_stale: isStale, stale_reason: isStale ? (ext === 'tmp' ? 'matches junk pattern' : 'older than threshold') : null, content_snippet: null
-                        };
-                    });
-
-                    updateStats(); renderTable(); showToast('Scan complete: ' + files.length + ' files found', 'success');
+        function renderBreadcrumb(path, parent) {
+            var parts = path.replace(/\\/g, '/').split('/').filter(Boolean);
+            var html = '';
+            if (parent !== null) {
+                html += '<button onclick="fetchDirectory(' + jsq(parent) + ')">..</button><span class="bc-sep">/</span>';
+            }
+            var accumulated = '';
+            parts.forEach(function(part, i) {
+                accumulated += (i === 0 ? '/' : '') + part + (i < parts.length - 1 ? '/' : '');
+                if (i < parts.length - 1) {
+                    html += '<button onclick="fetchDirectory(' + jsq(accumulated) + ')">' + escapeHtml(part) + '</button><span class="bc-sep">/</span>';
+                } else {
+                    html += '<span style="color:var(--silver)">' + escapeHtml(part) + '</span>';
                 }
-            }, 100);
+            });
+            document.getElementById('browserBreadcrumb').innerHTML = html;
+        }
+
+        function renderDirList(entries, parent) {
+            if (!entries.length) {
+                document.getElementById('dirList').innerHTML = '<div class="dir-empty">No subdirectories</div>';
+                return;
+            }
+            var html = entries.map(function(e) {
+                return '<div class="dir-item" onclick="selectEntry(' + jsq(e.path) + ')">'
+                    + '<span class="dir-item-icon">📁</span>'
+                    + '<span class="dir-item-name">' + escapeHtml(e.name) + '</span>'
+                    + '<button class="dir-nav-btn" onclick="event.stopPropagation(); fetchDirectory(' + jsq(e.path) + ')" title="Browse into folder">›</button>'
+                    + '</div>';
+            }).join('');
+            document.getElementById('dirList').innerHTML = html;
+        }
+
+        function selectEntry(path) {
+            browserCurrentPath = path;
+            document.getElementById('scanPath').value = path;
+            closeBrowser();
+        }
+
+        function selectDirectory() {
+            if (browserCurrentPath) {
+                document.getElementById('scanPath').value = browserCurrentPath;
+            }
+            closeBrowser();
+        }
+
+        // ── Real scan (async job + poll) ─────────────────────────────────
+        var _activeScanJob = null;
+        var _pollTimer = null;
+
+        async function startScan() {
+            var path = document.getElementById('scanPath').value.trim();
+            if (!path) { showToast('Enter a directory path first', 'error'); return; }
+            if (_activeScanJob) { showToast('A scan is already running', 'warn'); return; }
+            var phase2 = document.getElementById('enablePhase2').checked;
+
+            var progressEl = document.getElementById('progressBar');
+            document.getElementById('progressContainer').style.display = 'block';
+            progressEl.style.width = '5%';
+
+            try {
+                var r = await fetch('/api/scan', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ directories: [path], phase_2: phase2, no_classify: false })
+                });
+                if (!r.ok) {
+                    var err = await r.json();
+                    throw new Error(err.detail || 'Failed to start scan');
+                }
+                var data = await r.json();
+                _activeScanJob = data.job_id;
+                showToast('Scan started…', 'success');
+                _pollScan(progressEl);
+            } catch (e) {
+                document.getElementById('progressContainer').style.display = 'none';
+                showToast('Scan error: ' + e.message, 'error');
+            }
+        }
+
+        function _pollScan(progressEl) {
+            if (!_activeScanJob) return;
+            var elapsed = 0;
+            _pollTimer = setInterval(async function() {
+                elapsed += 3;
+                // Grow progress bar up to 90% while running
+                var pct = Math.min(90, 5 + elapsed * 1.5);
+                progressEl.style.width = pct + '%';
+                try {
+                    var r = await fetch('/api/job/' + _activeScanJob);
+                    if (!r.ok) return;
+                    var job = await r.json();
+                    if (job.status === 'complete') {
+                        clearInterval(_pollTimer);
+                        _activeScanJob = null;
+                        progressEl.style.width = '100%';
+                        setTimeout(function() { document.getElementById('progressContainer').style.display = 'none'; }, 600);
+                        if (job.session_id) {
+                            await loadSession(job.session_id);
+                        } else {
+                            showToast('Scan complete — no session data found', 'warn');
+                        }
+                    } else if (job.status === 'error') {
+                        clearInterval(_pollTimer);
+                        _activeScanJob = null;
+                        document.getElementById('progressContainer').style.display = 'none';
+                        showToast('Scan failed: ' + (job.error || 'unknown error'), 'error');
+                    }
+                } catch (e) { /* network blip — keep polling */ }
+            }, 3000);
+        }
+
+        async function loadSession(sessionId) {
+            try {
+                var r = await fetch('/api/session/' + sessionId);
+                if (!r.ok) { showToast('Could not load session results', 'error'); return; }
+                var data = await r.json();
+                files = (data.records || []).map(function(rec) {
+                    return {
+                        id: String(rec.id || Math.random().toString(36).substr(2, 9)),
+                        path: String(rec.path || ''),
+                        name: rec.name || '',
+                        size_bytes: rec.size_bytes || 0,
+                        modified_at: rec.modified_at || null,
+                        category: rec.category || null,
+                        sha256: rec.sha256 || null,
+                        is_duplicate: !!rec.is_duplicate,
+                        duplicate_of: rec.duplicate_of ? String(rec.duplicate_of) : null,
+                        is_stale: !!rec.is_stale,
+                        stale_reason: rec.stale_reason || null,
+                        content_snippet: rec.content_snippet || null,
+                    };
+                });
+                updateStats();
+                renderTable();
+                showToast('Scan complete: ' + files.length + ' files found', 'success');
+            } catch (e) {
+                showToast('Failed to load results: ' + e.message, 'error');
+            }
         }
 
         function updateStats() {

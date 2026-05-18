@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import asyncio
 import subprocess
+import sys
+import uuid
 from pathlib import Path
 from typing import Any
 
-from fastapi import BackgroundTasks, FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -70,21 +73,25 @@ def _to_toml(data: dict) -> str:
     return "\n".join(lines)
 
 
+_scan_jobs: dict[str, dict] = {}
+
+# sys.argv[0] is the fileforge entry-point that launched this server process
+_FILEFORGE_BIN = str(Path(sys.argv[0]).resolve())
+
+
 class ScanRequest(BaseModel):
     directories: list[str]
     config: str | None = None
     no_classify: bool = False
     phase_2: bool = False
-    interactive: bool = True
     dry_run: bool = False
 
 
 class ScanResponse(BaseModel):
     success: bool
     message: str
-    files_scanned: int = 0
-    duplicates_found: int = 0
-    stale_found: int = 0
+    job_id: str | None = None
+    session_id: int | None = None
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -100,47 +107,76 @@ async def health_check() -> dict[str, str | int]:
     return {"status": "ok", "version": __version__}
 
 
-@app.post("/api/scan", response_model=ScanResponse)
-async def scan_endpoint(
-    request: ScanRequest,
-    background_tasks: BackgroundTasks,
-) -> Any:
+def _latest_session_id() -> int | None:
+    """Return the highest session ID from the DB, or None."""
     try:
-        invalid_dirs = [d for d in request.directories if not Path(d).is_dir()]
-        if invalid_dirs:
-            raise HTTPException(
-                status_code=400, detail=f"Invalid directories: {invalid_dirs}"
-            )
+        from fileforge.db import SessionDB
 
-        cmd = ["fileforge", "scan"] + request.directories
-        if request.config:
-            cmd.extend(["--config", request.config])
-        if request.no_classify:
-            cmd.append("--no-classify")
-        if request.phase_2:
-            cmd.append("--phase-2")
-        if not request.interactive:
-            cmd.append("--interactive")
-        if request.dry_run:
-            cmd.append("--dry-run")
+        db_path = Path.home() / ".fileforge" / "sessions.db"
+        if not db_path.exists():
+            return None
+        db = SessionDB(db_path)
+        try:
+            sessions = db.list_sessions()
+            return sessions[0]["id"] if sessions else None
+        finally:
+            db.close()
+    except Exception:
+        return None
 
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
 
+def _run_scan(job_id: str, cmd: list[str]) -> None:
+    """Blocking scan worker — runs in a thread pool executor."""
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=3600)
         if result.returncode != 0:
-            raise HTTPException(status_code=500, detail=f"Scan failed: {result.stderr}")
+            _scan_jobs[job_id] = {
+                "status": "error",
+                "error": result.stderr[-1000:] or "Scan exited with non-zero status",
+            }
+            return
+        _scan_jobs[job_id] = {"status": "complete", "session_id": _latest_session_id()}
+    except subprocess.TimeoutExpired:
+        _scan_jobs[job_id] = {"status": "error", "error": "Scan timed out after 1 hour"}
+    except Exception as e:
+        _scan_jobs[job_id] = {"status": "error", "error": str(e)}
 
-        return ScanResponse(
-            success=True,
-            message="Scan completed successfully",
-            files_scanned=0,
-            duplicates_found=0,
-            stale_found=0,
+
+@app.post("/api/scan", response_model=ScanResponse)
+async def scan_endpoint(request: ScanRequest) -> Any:
+    if any(j["status"] == "running" for j in _scan_jobs.values()):
+        raise HTTPException(status_code=409, detail="A scan is already running")
+
+    invalid_dirs = [d for d in request.directories if not Path(d).is_dir()]
+    if invalid_dirs:
+        raise HTTPException(
+            status_code=400, detail=f"Invalid directories: {invalid_dirs}"
         )
 
-    except subprocess.TimeoutExpired:
-        raise HTTPException(status_code=504, detail="Scan timed out")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    cmd = [_FILEFORGE_BIN, "scan"] + request.directories
+    if request.config:
+        cmd.extend(["--config", request.config])
+    if request.no_classify:
+        cmd.append("--no-classify")
+    if request.phase_2:
+        cmd.append("--phase-2")
+    if request.dry_run:
+        cmd.append("--dry-run")
+
+    job_id = uuid.uuid4().hex[:10]
+    _scan_jobs[job_id] = {"status": "running", "session_id": None, "error": None}
+
+    asyncio.get_running_loop().run_in_executor(None, _run_scan, job_id, cmd)
+
+    return ScanResponse(success=True, message="Scan started", job_id=job_id)
+
+
+@app.get("/api/job/{job_id}")
+async def get_job_status(job_id: str) -> dict:
+    """Poll for async scan job status."""
+    if job_id not in _scan_jobs:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return _scan_jobs[job_id]
 
 
 @app.get("/api/stats")
@@ -272,6 +308,30 @@ async def update_config(cfg: FileForgeConfig) -> dict[str, str]:
     except OSError as e:
         raise HTTPException(status_code=500, detail=f"Failed to write config: {e}")
     return {"status": "saved", "path": str(path)}
+
+
+@app.get("/api/browse")
+async def browse_directory(path: str = "") -> dict:
+    """List subdirectories at *path* for the filesystem browser widget."""
+    target = Path(path).expanduser() if path else Path.home()
+    if not target.exists() or not target.is_dir():
+        raise HTTPException(status_code=404, detail=f"Directory not found: {target}")
+    try:
+        entries = sorted(
+            [
+                {"name": e.name, "path": str(e)}
+                for e in target.iterdir()
+                if e.is_dir() and not e.name.startswith(".")
+            ],
+            key=lambda x: x["name"].lower(),
+        )
+        return {
+            "path": str(target),
+            "parent": str(target.parent) if target != target.parent else None,
+            "entries": entries,
+        }
+    except PermissionError:
+        raise HTTPException(status_code=403, detail=f"Permission denied: {target}")
 
 
 if __name__ == "__main__":

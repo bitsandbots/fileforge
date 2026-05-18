@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from collections.abc import Iterator
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Iterator
 
 from fileforge.models import FileRecord
 
@@ -264,20 +264,33 @@ class SessionDB:
         cur = self._conn.execute("SELECT * FROM file_records")
         return [self._row_to_record(row) for row in cur]
 
+    def complete_session(self, session_id: int) -> None:
+        """Mark a session as complete by setting its completed_at timestamp.
+
+        Args:
+            session_id: The session's integer ID.
+        """
+        self._conn.execute(
+            "UPDATE sessions SET completed_at = ? WHERE id = ?",
+            (datetime.now(UTC).isoformat(), session_id),
+        )
+        self._conn.commit()
+
     def list_sessions(self) -> list[dict]:
         """List all scan sessions.
 
         Returns:
-            List of session dictionaries with id, scan_dirs, created_at.
+            List of session dictionaries with id, scan_dirs, created_at, completed_at.
         """
         cur = self._conn.execute(
-            "SELECT id, scan_dirs, created_at FROM sessions ORDER BY created_at DESC"
+            "SELECT id, scan_dirs, created_at, completed_at FROM sessions ORDER BY id DESC"
         )
         return [
             {
                 "id": row["id"],
                 "scan_dirs": json.loads(row["scan_dirs"]),
                 "created_at": row["created_at"],
+                "completed_at": row["completed_at"],
             }
             for row in cur
         ]
@@ -364,8 +377,9 @@ class SessionDB:
             The new trash entry's ID.
         """
         cur = self._conn.execute(
-            """INSERT INTO trash (original_path, trash_path, trash_at, size_bytes, sha256)
-               VALUES (?, ?, ?, ?, ?)""",
+            "INSERT INTO trash"
+            " (original_path, trash_path, trash_at, size_bytes, sha256)"
+            " VALUES (?, ?, ?, ?, ?)",
             (
                 str(original_path),
                 str(trash_path),

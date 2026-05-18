@@ -117,7 +117,8 @@ def scan(
             hashed_records.append(record)
         if hash_skipped:
             console.print(
-                f"[yellow]Warning:[/yellow] {hash_skipped} file(s) skipped due to errors"
+                f"[yellow]Warning:[/yellow] {hash_skipped} file(s) skipped"
+                " due to errors"
             )
 
         # Detect exact duplicates
@@ -139,13 +140,15 @@ def scan(
                     )
                 except (ConnectionError, OSError) as e:
                     console.print(
-                        f"[yellow]Warning:[/yellow] AI service error for {record.name}: {e}"
+                        f"[yellow]Warning:[/yellow] AI service error for"
+                        f" {record.name}: {e}"
                     )
                     category = "Uncategorized"
                     classification_errors += 1
                 except Exception as e:
                     console.print(
-                        f"[yellow]Warning:[/yellow] Classification error for {record.name}: {e}"
+                        f"[yellow]Warning:[/yellow] Classification error for"
+                        f" {record.name}: {e}"
                     )
                     category = "Uncategorized"
                     classification_errors += 1
@@ -156,7 +159,8 @@ def scan(
             hashed_records = classified_records
             if classification_errors:
                 console.print(
-                    f"[yellow]Note:[/yellow] {classification_errors} file(s) classified as Uncategorized due to errors"
+                    f"[yellow]Note:[/yellow] {classification_errors} file(s)"
+                    " classified as Uncategorized due to errors"
                 )
 
         # Phase 2: Staleness detection
@@ -287,6 +291,7 @@ def scan(
                 console.print(f"[cyan]Open manually:[/cyan] {report_path.absolute()}")
 
     finally:
+        db.complete_session(session_id)
         db.close()
 
 
@@ -350,7 +355,8 @@ def organize(
                     )
                 except UnicodeDecodeError:
                     console.print(
-                        f"[yellow]Warning:[/yellow] {forgeignore} is not valid UTF-8, skipping"
+                        f"[yellow]Warning:[/yellow] {forgeignore} is not valid"
+                        " UTF-8, skipping"
                     )
         scanner = Scanner(ignore_patterns=all_patterns, max_depth=cfg.general.max_depth)
 
@@ -382,7 +388,8 @@ def organize(
             hashed_records.append(record)
         if hash_skipped:
             console.print(
-                f"[yellow]Warning:[/yellow] {hash_skipped} file(s) skipped due to errors"
+                f"[yellow]Warning:[/yellow] {hash_skipped} file(s) skipped"
+                " due to errors"
             )
 
         # Detect exact duplicates
@@ -420,7 +427,8 @@ def organize(
                 classification_errors += 1
             except Exception as e:
                 console.print(
-                    f"[yellow]Warning:[/yellow] Classification error for {record.name}: {e}"
+                    f"[yellow]Warning:[/yellow] Classification error for"
+                    f" {record.name}: {e}"
                 )
                 category = "Uncategorized"
                 classification_errors += 1
@@ -431,7 +439,8 @@ def organize(
         hashed_records = classified_records
         if classification_errors:
             console.print(
-                f"[yellow]Note:[/yellow] {classification_errors} file(s) classified as Uncategorized due to errors"
+                f"[yellow]Note:[/yellow] {classification_errors} file(s)"
+                " classified as Uncategorized due to errors"
             )
 
         # Detect stale files (phase 2 analysis)
@@ -574,6 +583,7 @@ def organize(
             console.print(f"  [red]Errors: {error_count}[/red]")
 
     finally:
+        db.complete_session(session_id)
         db.close()
 
 
@@ -635,8 +645,8 @@ def schedule(
     console = Console(force_terminal=False, highlight=False)
     cfg = load_config(config)
 
-    from fileforge.schedule.job_manager import JobManager
     from fileforge.db import SessionDB
+    from fileforge.schedule.job_manager import JobManager
 
     db = SessionDB(Path(cfg.general.output_dir).expanduser() / "sessions.db")
     job_mgr = JobManager(db, cfg.schedule)
@@ -733,7 +743,8 @@ def dupes(
                     )
                 except UnicodeDecodeError:
                     console.print(
-                        f"[yellow]Warning:[/yellow] {forgeignore} is not valid UTF-8, skipping"
+                        f"[yellow]Warning:[/yellow] {forgeignore} is not valid"
+                        " UTF-8, skipping"
                     )
         scanner = Scanner(ignore_patterns=all_patterns, max_depth=cfg.general.max_depth)
 
@@ -765,7 +776,8 @@ def dupes(
             hashed_records.append(record)
         if hash_skipped:
             console.print(
-                f"[yellow]Warning:[/yellow] {hash_skipped} file(s) skipped due to errors"
+                f"[yellow]Warning:[/yellow] {hash_skipped} file(s) skipped"
+                " due to errors"
             )
 
         # Detect exact duplicates
@@ -906,6 +918,7 @@ def dupes(
             console.print(f"  [red]Errors: {error_count}[/red]")
 
     finally:
+        db.complete_session(session_id)
         db.close()
 
 
