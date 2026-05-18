@@ -296,6 +296,9 @@ def organize(
     config: Path = typer.Option(None, help="Config file path"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Preview without executing"),
     trash_dir: Path = typer.Option(None, help="Trash directory for stale files"),
+    prune_empty: bool = typer.Option(
+        False, "--prune-empty", help="Delete empty directories after organizing"
+    ),
 ) -> None:
     """Organize files based on classification, duplicates, and staleness."""
     # Console created inside function so CliRunner captures output in tests
@@ -317,6 +320,7 @@ def organize(
 
     # Import actions inside function for lazy loading
     from fileforge.actions.mover import move_file
+    from fileforge.actions.prune import prune_empty_dirs
     from fileforge.actions.trash import move_to_trash
 
     # Set up session DB
@@ -488,6 +492,10 @@ def organize(
                     console.print(f"  {source.name:40s} → [green]{dest}[/green]")
 
             console.print(f"\n[dim]Total files to process: {len(action_plan)}[/dim]")
+            if prune_empty:
+                console.print(
+                    "[dim]Empty directories would be removed after organizing.[/dim]"
+                )
             return
 
         # Execute actions
@@ -549,11 +557,19 @@ def organize(
                 )
                 error_count += 1
 
+        # Prune empty directories left behind after moves
+        pruned_count = 0
+        if prune_empty:
+            pruned = prune_empty_dirs(scan_paths)
+            pruned_count = len(pruned)
+
         # Print summary
         console.print("\n[green]Organization complete![/green]")
         console.print(f"  Organized: {organized_count}")
         console.print(f"  Duplicates: {duplicate_count}")
         console.print(f"  Stale/Trashed: {stale_count}")
+        if prune_empty:
+            console.print(f"  Empty dirs removed: {pruned_count}")
         if error_count:
             console.print(f"  [red]Errors: {error_count}[/red]")
 
@@ -661,6 +677,11 @@ def dupes(
     duplicates_dir: Path | None = typer.Option(
         None, help="Duplicates folder for --move"
     ),
+    prune_empty: bool = typer.Option(
+        False,
+        "--prune-empty",
+        help="Delete empty directories after handling duplicates",
+    ),
 ) -> None:
     """Find and handle duplicate files."""
     # Console created inside function so CliRunner captures output in tests
@@ -683,6 +704,7 @@ def dupes(
 
     # Import inside function for lazy loading
     from fileforge.actions.mover import move_file
+    from fileforge.actions.prune import prune_empty_dirs
 
     # Set up session DB
     db_dir = Path(cfg.general.output_dir).expanduser()
@@ -807,6 +829,11 @@ def dupes(
             console.print(
                 f"\n[dim]Total files affected: {len(duplicates_to_process)}[/dim]"
             )
+            if prune_empty and (delete or move):
+                console.print(
+                    "[dim]Empty directories would be removed"
+                    " after handling duplicates.[/dim]"
+                )
             return
 
         # Execute actions
@@ -861,12 +888,20 @@ def dupes(
                 )
                 error_count += 1
 
+        # Prune empty directories left behind after deletes/moves
+        pruned_count = 0
+        if prune_empty and (delete or move):
+            pruned = prune_empty_dirs(scan_paths)
+            pruned_count = len(pruned)
+
         # Print summary
         console.print("\n[green]Duplicate handling complete![/green]")
         if delete:
             console.print(f"  Deleted: {deleted_count}")
         else:
             console.print(f"  Moved: {moved_count}")
+        if prune_empty and (delete or move):
+            console.print(f"  Empty dirs removed: {pruned_count}")
         if error_count:
             console.print(f"  [red]Errors: {error_count}[/red]")
 
