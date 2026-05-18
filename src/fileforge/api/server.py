@@ -12,7 +12,9 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-app = FastAPI(title="FileForge API", version="0.1.0")
+from fileforge import __version__
+
+app = FastAPI(title="FileForge API", version=__version__)
 
 app.add_middleware(
     CORSMiddleware,
@@ -54,7 +56,7 @@ async def root() -> HTMLResponse:
 
 @app.get("/api/health")
 async def health_check() -> dict[str, str | int]:
-    return {"status": "ok", "version": "0.1.0"}
+    return {"status": "ok", "version": __version__}
 
 
 @app.post("/api/scan", response_model=ScanResponse)

@@ -73,6 +73,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `scripts/release.sh`: stages `CHANGELOG.md` in the release commit and fails fast if the version entry is missing
 - `scripts/install.sh`: fixes missing blank line before the Development quick-start block
 
+## [0.1.6] — 2026-05-18
+
+### Fixed
+- `api/server.py`: `/api/health` endpoint returned hardcoded `"version":"0.1.0"`; now reflects `__version__` from the package
+- `systemd/fileforge-scan.timer`: duplicate `OnCalendar=` directives caused the daily scan to fire at midnight AND 02:00; consolidated to `OnCalendar=*-*-* 02:00:00`
+
+### Changed
+- `scripts/install.sh`: systemd installer lookup now falls back to pip-installed package location when the dev-tree path is absent
+
 ## [Unreleased]
 
 ### Planned

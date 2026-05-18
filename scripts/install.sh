@@ -193,11 +193,16 @@ if command -v systemctl &>/dev/null && [[ -d "$HOME/.config" || -w "$HOME" ]]; t
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+        # Try dev-tree path first, then fall back to pip-installed package location
         SYSTEMD_INSTALLER="${SCRIPT_DIR}/../src/fileforge/systemd/install.sh"
+        if [[ ! -f "$SYSTEMD_INSTALLER" ]]; then
+            PKG_SYSTEMD=$("$PYTHON" -c "import fileforge, os; print(os.path.join(os.path.dirname(fileforge.__file__), 'systemd', 'install.sh'))" 2>/dev/null || true)
+            [[ -f "$PKG_SYSTEMD" ]] && SYSTEMD_INSTALLER="$PKG_SYSTEMD"
+        fi
         if [[ -f "$SYSTEMD_INSTALLER" ]]; then
             bash "$SYSTEMD_INSTALLER" --all || warn "Systemd install reported issues; check 'systemctl --user status'"
         else
-            warn "Systemd installer not found at $SYSTEMD_INSTALLER"
+            warn "Systemd installer not found. Run manually: python3 -c \"import fileforge, os; print(os.path.dirname(fileforge.__file__))\" to locate the systemd/ directory."
         fi
     fi
 fi
