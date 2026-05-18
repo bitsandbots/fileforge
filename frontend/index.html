@@ -425,6 +425,7 @@
                 <div style="margin-top: 1rem; display: flex; gap: 1rem; align-items: center;">
                     <label style="color: var(--silver); opacity: 0.7;"><input type="checkbox" id="includeSubdirs" checked> Include subdirectories</label>
                     <label style="color: var(--silver); opacity: 0.7;"><input type="checkbox" id="enablePhase2"> Enable advanced analysis</label>
+                    <label style="color: var(--silver); opacity: 0.7;"><input type="checkbox" id="noClassify" checked> Quick scan (skip AI classification)</label>
                 </div>
             </div>
         </div>
@@ -621,6 +622,7 @@
             if (!path) { showToast('Enter a directory path first', 'error'); return; }
             if (_activeScanJob) { showToast('A scan is already running', 'warn'); return; }
             var phase2 = document.getElementById('enablePhase2').checked;
+            var noClassify = document.getElementById('noClassify').checked;
 
             var progressEl = document.getElementById('progressBar');
             document.getElementById('progressContainer').style.display = 'block';
@@ -630,7 +632,7 @@
                 var r = await fetch('/api/scan', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ directories: [path], phase_2: phase2, no_classify: false })
+                    body: JSON.stringify({ directories: [path], phase_2: phase2, no_classify: noClassify })
                 });
                 if (!r.ok) {
                     var err = await r.json();

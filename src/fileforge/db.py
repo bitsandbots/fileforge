@@ -283,7 +283,8 @@ class SessionDB:
             List of session dictionaries with id, scan_dirs, created_at, completed_at.
         """
         cur = self._conn.execute(
-            "SELECT id, scan_dirs, created_at, completed_at FROM sessions ORDER BY id DESC"
+            "SELECT id, scan_dirs, created_at, completed_at"
+            " FROM sessions ORDER BY id DESC"
         )
         return [
             {

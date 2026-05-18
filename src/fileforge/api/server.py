@@ -147,13 +147,14 @@ async def scan_endpoint(request: ScanRequest) -> Any:
     if any(j["status"] == "running" for j in _scan_jobs.values()):
         raise HTTPException(status_code=409, detail="A scan is already running")
 
-    invalid_dirs = [d for d in request.directories if not Path(d).is_dir()]
+    expanded_dirs = [str(Path(d).expanduser()) for d in request.directories]
+    invalid_dirs = [d for d in expanded_dirs if not Path(d).is_dir()]
     if invalid_dirs:
         raise HTTPException(
             status_code=400, detail=f"Invalid directories: {invalid_dirs}"
         )
 
-    cmd = [_FILEFORGE_BIN, "scan"] + request.directories
+    cmd = [_FILEFORGE_BIN, "scan"] + expanded_dirs
     if request.config:
         cmd.extend(["--config", request.config])
     if request.no_classify:
