@@ -37,6 +37,37 @@ fi
 PYTHON_VERSION=$("$PYTHON" --version)
 success "Found $PYTHON_VERSION ($PYTHON)"
 
+# ── Virtual environment ───────────────────────────────────────────────────────
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
+IN_VENV=false
+if [[ -n "${VIRTUAL_ENV:-}" ]]; then
+    IN_VENV=true
+    success "Already in virtual environment: ${VIRTUAL_ENV}"
+else
+    VENV_DIR="${PROJECT_ROOT}/.venv"
+    if [[ -f "${VENV_DIR}/bin/activate" ]]; then
+        info "Found existing .venv — activating"
+        # shellcheck source=/dev/null
+        source "${VENV_DIR}/bin/activate"
+        PYTHON="${VENV_DIR}/bin/python3"
+        IN_VENV=true
+        success "Activated ${VENV_DIR}"
+    elif "$PYTHON" -m venv --help &>/dev/null 2>&1; then
+        info "Creating virtual environment at .venv ..."
+        "$PYTHON" -m venv "${VENV_DIR}"
+        # shellcheck source=/dev/null
+        source "${VENV_DIR}/bin/activate"
+        PYTHON="${VENV_DIR}/bin/python3"
+        IN_VENV=true
+        success "Created and activated ${VENV_DIR}"
+    else
+        warn "venv module unavailable — install python3-venv: sudo apt install python3.12-venv"
+        warn "Falling back to --break-system-packages (not recommended for production)"
+    fi
+fi
+
 # ── pip check ─────────────────────────────────────────────────────────────────
 info "Checking pip..."
 
@@ -50,7 +81,11 @@ success "Found $PIP_VERSION"
 # ── Install in editable mode with dev deps ────────────────────────────────────
 info "Installing FileForge in editable mode..."
 
-"$PYTHON" -m pip install -e ".[dev]"
+if [[ "$IN_VENV" == "true" ]]; then
+    "$PYTHON" -m pip install -e ".[dev]"
+else
+    "$PYTHON" -m pip install -e ".[dev]" --break-system-packages
+fi
 
 success "Core package installed"
 
@@ -211,3 +246,10 @@ printf "  ${BOLD}Development:${RESET}\n"
 printf "    python -m pytest -q    — Run tests\n"
 printf "    bash scripts/check.sh  — Lint + format\n"
 printf "\n"
+
+# ── Venv activation reminder ──────────────────────────────────────────────────
+if [[ "$IN_VENV" == "true" && -z "${VIRTUAL_ENV:-}" ]]; then
+    printf "${YELLOW}Remember to activate the virtual environment in new shells:${RESET}\n"
+    printf "    source .venv/bin/activate\n"
+    printf "\n"
+fi
