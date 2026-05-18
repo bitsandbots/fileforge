@@ -20,8 +20,10 @@ class SessionDB:
 
     def __init__(self, db_path: Path) -> None:
         self._path = db_path
-        self._conn = sqlite3.connect(db_path)
+        self._conn = sqlite3.connect(db_path, timeout=30)
         self._conn.row_factory = sqlite3.Row
+        # WAL mode: concurrent readers don't block the writer and vice versa
+        self._conn.execute("PRAGMA journal_mode=WAL")
         self._migrate()
 
     def _migrate(self) -> None:
