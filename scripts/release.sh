@@ -125,7 +125,7 @@ if [[ "$DRY_RUN" == "true" ]]; then
 else
     if ! python3 -m build --version &>/dev/null 2>&1; then
         warn "build package not found. Installing..."
-        pip install build -q
+        pip3 install build -q --break-system-packages 2>/dev/null || pip3 install build -q --user
     fi
     python3 -m build
     success "Package built in dist/"
