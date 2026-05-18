@@ -139,8 +139,12 @@ if [[ "$DRY_RUN" == "true" ]]; then
     dryrun "git commit -m \"${COMMIT_MSG}\""
 else
     git add "${INIT_FILE}" "${PYPROJECT_FILE}" "${CHANGELOG_FILE}"
-    git commit -m "${COMMIT_MSG}"
-    success "Committed: ${COMMIT_MSG}"
+    if git diff --cached --quiet; then
+        warn "Nothing to commit — version files already at ${VERSION}"
+    else
+        git commit -m "${COMMIT_MSG}"
+        success "Committed: ${COMMIT_MSG}"
+    fi
 fi
 
 # ── Git tag ───────────────────────────────────────────────────────────────────
