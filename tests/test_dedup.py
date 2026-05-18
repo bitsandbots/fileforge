@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from pathlib import Path
 
-from fileforge.analysis.dedup import hash_file, find_exact_duplicates
+from fileforge.analysis.dedup import find_exact_duplicates, hash_file
 from fileforge.models import FileRecord
 
 

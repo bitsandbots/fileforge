@@ -1,8 +1,9 @@
+import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
-import tempfile
-from fileforge.report.html_generator import generate_html_report
+
 from fileforge.models import FileRecord
+from fileforge.report.html_generator import generate_html_report
 
 
 def test_generate_html_report_creates_file() -> None:
@@ -53,7 +54,7 @@ def test_generate_html_report_handles_empty_records() -> None:
         tmpdir = Path(tmpdir)
 
         output = tmpdir / "report.html"
-        result = generate_html_report([], output)
+        generate_html_report([], output)
 
         assert output.exists()
         html = output.read_text()

@@ -6,7 +6,6 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import ollama
-import pytest
 
 from fileforge.ai.classifier import classify_file, parse_category
 

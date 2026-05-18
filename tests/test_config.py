@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from fileforge.config import FileForgeConfig, load_config
+from fileforge.config import load_config
 
 
 def test_load_config_defaults(tmp_dir: Path) -> None:

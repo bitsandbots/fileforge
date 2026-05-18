@@ -1,7 +1,8 @@
 """Tests for CLI watch and schedule commands."""
 
-from pathlib import Path
 import tempfile
+from pathlib import Path
+
 from typer.testing import CliRunner
 
 from fileforge.cli import app

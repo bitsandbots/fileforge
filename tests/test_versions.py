@@ -5,8 +5,6 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from pathlib import Path
 
-import pytest
-
 from fileforge.analysis.versions import extract_version, find_superseded_versions
 from fileforge.models import FileRecord
 

@@ -71,7 +71,7 @@ class WatchConfig(BaseModel):
     )
     auto_act: bool = Field(
         default=False,
-        description="Automatically execute actions (move/archive) without user confirmation",
+        description="Automatically execute actions (move/archive) without confirmation",
     )
     debounce_patterns: list[str] = Field(
         default_factory=lambda: ["*.tmp", "*.swp", "~*"],

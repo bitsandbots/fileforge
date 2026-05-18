@@ -1,10 +1,8 @@
 """Trash management tests with recovery capability."""
 
+import tempfile
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-import tempfile
-
-import pytest
 
 from fileforge.actions.trash import empty_trash, move_to_trash, restore_from_trash
 

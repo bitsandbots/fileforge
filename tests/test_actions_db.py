@@ -1,8 +1,6 @@
 from datetime import UTC, datetime
 from pathlib import Path
 
-import pytest
-
 from fileforge.db import SessionDB
 from fileforge.models import FileRecord
 

@@ -5,11 +5,11 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-_log = logging.getLogger(__name__)
-
 from fileforge.extractor import docx as _docx
 from fileforge.extractor import pdf as _pdf
 from fileforge.extractor import text as _text
+
+_log = logging.getLogger(__name__)
 
 # Map extension → extractor module. Expand as phases add more extractors.
 _DISPATCH: dict[str, object] = {}

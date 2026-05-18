@@ -1,10 +1,10 @@
 """Tests for job scheduler using APScheduler."""
 
-from datetime import datetime, UTC
-from pathlib import Path
 import tempfile
-from fileforge.db import SessionDB
+from pathlib import Path
+
 from fileforge.config import ScheduleConfig
+from fileforge.db import SessionDB
 from fileforge.schedule.job_manager import JobManager
 
 
@@ -52,7 +52,8 @@ def test_job_manager_logs_execution() -> None:
 
         # Check that it was logged
         cursor = db._conn.execute(
-            "SELECT status FROM job_history WHERE job_type = 'manual' ORDER BY triggered_at DESC LIMIT 1"
+            "SELECT status FROM job_history WHERE job_type = 'manual'"
+            " ORDER BY triggered_at DESC LIMIT 1"
         )
         row = cursor.fetchone()
         assert row is not None
@@ -108,7 +109,8 @@ def test_job_manager_handles_errors() -> None:
 
         # Check that error was logged
         cursor = db._conn.execute(
-            "SELECT status, error_message FROM job_history WHERE job_type = 'manual' ORDER BY triggered_at DESC LIMIT 1"
+            "SELECT status, error_message FROM job_history WHERE job_type = 'manual'"
+            " ORDER BY triggered_at DESC LIMIT 1"
         )
         row = cursor.fetchone()
         assert row is not None
