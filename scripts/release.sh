@@ -51,10 +51,12 @@ cd "$PROJECT_ROOT"
 
 INIT_FILE="src/fileforge/__init__.py"
 PYPROJECT_FILE="pyproject.toml"
+CHANGELOG_FILE="CHANGELOG.md"
 
 # ── Check files exist ─────────────────────────────────────────────────────────
-[[ -f "$INIT_FILE" ]]     || fail "Not found: $INIT_FILE"
+[[ -f "$INIT_FILE" ]]      || fail "Not found: $INIT_FILE"
 [[ -f "$PYPROJECT_FILE" ]] || fail "Not found: $PYPROJECT_FILE"
+[[ -f "$CHANGELOG_FILE" ]] || fail "Not found: $CHANGELOG_FILE"
 
 # ── Verify systemd templates are present (packaged with the wheel) ───────────
 SYSTEMD_DIR="src/fileforge/systemd"
@@ -62,6 +64,13 @@ for unit in fileforge-scan.service fileforge-scan.timer fileforge-server.service
     [[ -f "${SYSTEMD_DIR}/${unit}" ]] || fail "Missing systemd file: ${SYSTEMD_DIR}/${unit}"
 done
 success "Systemd templates present"
+
+# ── Verify CHANGELOG has an entry for this version ───────────────────────────
+step "Checking CHANGELOG for v${VERSION} entry..."
+if ! grep -q "## \[${VERSION}\]" "$CHANGELOG_FILE"; then
+    fail "No '## [${VERSION}]' entry found in ${CHANGELOG_FILE}. Add a changelog entry before releasing."
+fi
+success "CHANGELOG entry found"
 
 # ── Check for uncommitted changes ─────────────────────────────────────────────
 step "Checking for uncommitted changes..."
@@ -126,10 +135,10 @@ fi
 step "Creating release commit..."
 COMMIT_MSG="chore: bump version to ${VERSION}"
 if [[ "$DRY_RUN" == "true" ]]; then
-    dryrun "git add ${INIT_FILE} ${PYPROJECT_FILE}"
+    dryrun "git add ${INIT_FILE} ${PYPROJECT_FILE} ${CHANGELOG_FILE}"
     dryrun "git commit -m \"${COMMIT_MSG}\""
 else
-    git add "${INIT_FILE}" "${PYPROJECT_FILE}"
+    git add "${INIT_FILE}" "${PYPROJECT_FILE}" "${CHANGELOG_FILE}"
     git commit -m "${COMMIT_MSG}"
     success "Committed: ${COMMIT_MSG}"
 fi

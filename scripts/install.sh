@@ -201,6 +201,7 @@ if command -v systemctl &>/dev/null && [[ -d "$HOME/.config" || -w "$HOME" ]]; t
         fi
     fi
 fi
+
 printf "  ${BOLD}Development:${RESET}\n"
 printf "    python -m pytest -q    — Run tests\n"
 printf "    bash scripts/check.sh  — Lint + format\n"

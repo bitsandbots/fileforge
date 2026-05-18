@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import fnmatch
+import os
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Iterator
 
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
@@ -24,7 +25,7 @@ class Scanner:
         self._max_depth = max_depth
 
     @classmethod
-    def from_directory(cls, root: Path, ignore_patterns: list[str]) -> "Scanner":
+    def from_directory(cls, root: Path, ignore_patterns: list[str]) -> Scanner:
         """Create a Scanner, merging .forgeignore from root into patterns.
 
         Args:
@@ -90,9 +91,9 @@ class Scanner:
             if self._should_ignore(entry):
                 continue
 
-            if entry.is_dir(follow_symlinks=False):
+            if os.path.isdir(entry) and not os.path.islink(entry):
                 yield from self._walk(root, entry, depth + 1, progress, task)
-            elif entry.is_file(follow_symlinks=False):
+            elif os.path.isfile(entry) and not os.path.islink(entry):
                 try:
                     record = self._make_record(entry)
                 except (FileNotFoundError, PermissionError, OSError):

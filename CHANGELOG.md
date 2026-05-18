@@ -61,6 +61,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Top-level `scripts/install.sh` now offers to register systemd services
 - `scripts/release.sh` verifies systemd templates are present before packaging
 
+## [0.1.5] — 2026-05-18
+
+### Added
+- `CLAUDE.md` — repository guidance for Claude Code sessions
+
+### Fixed
+- `scanner.py`: replace `Path.is_dir/is_file(follow_symlinks=False)` (Python 3.13+) with `os.path` equivalents for Python 3.11/3.12 compatibility
+
+### Changed
+- `scripts/release.sh`: stages `CHANGELOG.md` in the release commit and fails fast if the version entry is missing
+- `scripts/install.sh`: fixes missing blank line before the Development quick-start block
+
 ## [Unreleased]
 
 ### Planned
