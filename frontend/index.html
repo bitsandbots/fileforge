@@ -735,7 +735,7 @@
                     var matchesPath = f.path.toLowerCase().includes(searchLower);
                     if (!matchesName && !matchesCategory && !matchesPath) return false;
                 }
-                if (filter.category !== 'all' && f.category !== filter.category) return false;
+                if (filter.category !== 'all' && normalizeCategoryKey(f.category) !== filter.category) return false;
                 if (filter.status === 'duplicate' && !f.is_duplicate) return false;
                 if (filter.status === 'stale' && !f.is_stale) return false;
                 if (filter.status === 'normal' && (f.is_duplicate || f.is_stale)) return false;
@@ -757,7 +757,7 @@
                 html += '<tr data-file-id="' + escapeHtml(f.id) + '">';
                 html += '<td><div style="font-weight: 500;">' + escapeHtml(f.name) + '</div>';
                 html += '<div style="font-size: 0.8rem; color: var(--silver); opacity: 0.5; font-family: \'IBM Plex Mono\', monospace;">' + escapeHtml(f.path) + '</div></td>';
-                html += '<td><span class="category"><span class="category-dot" style="background: getCategoryColor(\'' + escapeHtml(f.category) + '\')"></span>' + (f.category || 'Uncategorized') + '</span></td>';
+                html += '<td><span class="category"><span class="category-dot" style="background: ' + escapeHtml(getCategoryColor(f.category)) + '"></span>' + escapeHtml(f.category || 'Uncategorized') + '</span></td>';
                 html += '<td>' + formatBytes(f.size_bytes) + '</td>';
                 html += '<td>' + formatDatetime(f.modified_at) + '</td>';
                 html += '<td>' + badges + '</td>';
@@ -779,8 +779,18 @@
         }
 
         function getCategoryColor(category) {
+            if (!category) return '#7f8c8d';
+            var top = category.split('/')[0];
             var colors = { 'Documents': '#27ae60', 'Images': '#e74c3c', 'Audio': '#e67e22', 'Video': '#9b59b6', 'Archives': '#34495e', 'Code': '#3498db', 'Data': '#f39c12', 'Other': '#95a5a6' };
-            return colors[category] || '#7f8c8d';
+            return colors[top] || '#7f8c8d';
+        }
+
+        // Normalize a raw category path to the canonical lowercase singular key used by the filter dropdown.
+        function normalizeCategoryKey(category) {
+            if (!category) return 'other';
+            var top = category.split('/')[0].toLowerCase();
+            // Strip common plural suffix so "Documents"→"document", "Images"→"image", etc.
+            return top.replace(/s$/, '');
         }
 
         function escapeHtml(str) {
@@ -800,6 +810,7 @@
                 if (tabName === 'duplicates') currentFilter.status = 'duplicate';
                 else if (tabName === 'stale') currentFilter.status = 'stale';
                 else currentFilter.status = 'all';
+                document.getElementById('filterSelect').value = currentFilter.status;
                 renderTable();
             });
         });
