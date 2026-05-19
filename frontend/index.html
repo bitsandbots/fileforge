@@ -680,29 +680,36 @@
             }, 3000);
         }
 
+        // Shared helper: convert an API record to a local file object
+        function _recordFromApi(rec) {
+            return {
+                id: String(rec.id || Math.random().toString(36).substr(2, 9)),
+                path: String(rec.path || ''),
+                name: rec.name || '',
+                size_bytes: rec.size_bytes || 0,
+                modified_at: rec.modified_at || null,
+                category: rec.category || null,
+                sha256: rec.sha256 || null,
+                is_duplicate: !!rec.is_duplicate,
+                duplicate_of: rec.duplicate_of ? String(rec.duplicate_of) : null,
+                is_stale: !!rec.is_stale,
+                stale_reason: rec.stale_reason || null,
+                content_snippet: rec.content_snippet || null,
+            };
+        }
+
+        function _applyRecords(records) {
+            files = (records || []).map(_recordFromApi);
+            updateStats();
+            renderTable();
+        }
+
         async function loadSession(sessionId) {
             try {
                 var r = await fetch('/api/session/' + sessionId);
                 if (!r.ok) { showToast('Could not load session results', 'error'); return; }
                 var data = await r.json();
-                files = (data.records || []).map(function(rec) {
-                    return {
-                        id: String(rec.id || Math.random().toString(36).substr(2, 9)),
-                        path: String(rec.path || ''),
-                        name: rec.name || '',
-                        size_bytes: rec.size_bytes || 0,
-                        modified_at: rec.modified_at || null,
-                        category: rec.category || null,
-                        sha256: rec.sha256 || null,
-                        is_duplicate: !!rec.is_duplicate,
-                        duplicate_of: rec.duplicate_of ? String(rec.duplicate_of) : null,
-                        is_stale: !!rec.is_stale,
-                        stale_reason: rec.stale_reason || null,
-                        content_snippet: rec.content_snippet || null,
-                    };
-                });
-                updateStats();
-                renderTable();
+                _applyRecords(data.records);
                 showToast('Scan complete: ' + files.length + ' files found', 'success');
             } catch (e) {
                 showToast('Failed to load results: ' + e.message, 'error');
@@ -1055,11 +1062,36 @@
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(function(eventName) { uploadArea.addEventListener(eventName, function(e) { e.preventDefault(); e.stopPropagation(); }); });
         ['dragenter', 'dragover'].forEach(function(eventName) { uploadArea.addEventListener(eventName, function() { uploadArea.classList.add('dragover'); }); });
         ['dragleave', 'drop'].forEach(function(eventName) { uploadArea.addEventListener(eventName, function() { uploadArea.classList.remove('dragover'); }); });
+        function simulateScan(fileList) {
+            // Accept dropped files — show a toast; full scan is directory-based
+            var names = fileList.map(function(f) { return f.name; }).join(', ');
+            showToast('Dropped ' + fileList.length + ' file(s): ' + names.slice(0, 80) + '. Use Browse to scan a directory.', 'success');
+        }
+
         uploadArea.addEventListener('drop', function(e) {
             e.preventDefault();
             var filesList = Array.from(e.dataTransfer.files).map(function(f) { return { path: f.webkitRelativePath || f.name, name: f.name, size: f.size, lastModified: f.lastModified, type: f.type }; });
-            simulateScan(filesList); showToast('Scanning ' + filesList.length + ' files...', 'success');
+            simulateScan(filesList);
         });
+
+        // On page load, try to load the most recent session from the server
+        (async function initLatestSession() {
+            try {
+                var r = await fetch('/api/sessions');
+                if (!r.ok) return;
+                var data = await r.json();
+                if (data.sessions && data.sessions.length > 0) {
+                    var latest = data.sessions[0];
+                    var sr = await fetch('/api/session/' + latest.id);
+                    if (sr.ok) {
+                        var sdata = await sr.json();
+                        _applyRecords(sdata.records);
+                    }
+                }
+            } catch (_) {
+                // Server may not be available yet — silently skip
+            }
+        })();
 
         updateStats();
     </script>

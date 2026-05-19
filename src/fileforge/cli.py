@@ -83,6 +83,7 @@ def scan(
     try:
         db = SessionDB(db_dir / "sessions.db")
         session_id = db.create_session(scan_paths)
+        console.print(f"SESSION_ID={session_id}")
     except sqlite3.OperationalError as exc:
         console.print(f"[red]Error:[/red] cannot open database: {exc}")
         raise typer.Exit(code=1)

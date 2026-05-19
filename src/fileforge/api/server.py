@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import asyncio
+import logging
+import shutil
 import subprocess
 import sys
 import uuid
@@ -17,6 +19,8 @@ from pydantic import BaseModel
 
 from fileforge import __version__
 from fileforge.config import FileForgeConfig, load_config
+
+logger = logging.getLogger("fileforge.api")
 
 app = FastAPI(title="FileForge API", version=__version__)
 
@@ -40,6 +44,21 @@ def _config_path() -> Path:
     if legacy.exists() and not xdg.exists():
         return legacy
     return xdg
+
+
+def _resolve_db_path() -> Path:
+    """Resolve the database path from config, falling back to default.
+
+    Reads the user's fileforge.toml to honour a custom ``output_dir``.
+    """
+    cfg_path = _config_path()
+    if cfg_path.exists():
+        try:
+            cfg = load_config(cfg_path)
+            return Path(cfg.general.output_dir).expanduser() / "sessions.db"
+        except Exception as exc:
+            logger.warning("Failed to read config for db path: %s", exc)
+    return Path.home() / ".fileforge" / "sessions.db"
 
 
 def _esc_toml(s: str) -> str:
@@ -75,8 +94,35 @@ def _to_toml(data: dict) -> str:
 
 _scan_jobs: dict[str, dict] = {}
 
-# sys.argv[0] is the fileforge entry-point that launched this server process
-_FILEFORGE_BIN = str(Path(sys.argv[0]).resolve())
+
+def _resolve_fileforge_bin() -> list[str]:
+    """Find the ``fileforge`` CLI binary.
+
+    Tries, in order:
+      1. ``sys.argv[0]`` resolved (works when launched via ``fileforge server``).
+      2. ``shutil.which('fileforge')`` (works when fileforge is on ``PATH``).
+      3. ``sys.executable -m fileforge`` (works in editable installs).
+    """
+    try:
+        candidate = Path(sys.argv[0]).resolve()
+        if candidate.name == "fileforge" or candidate.name == "__main__.py":
+            if candidate.exists():
+                return [str(candidate)]
+    except Exception:
+        pass
+
+    found = shutil.which("fileforge")
+    if found:
+        return [found]
+
+    logger.warning(
+        "Could not find fileforge binary; falling back to " "'%s -m fileforge'",
+        sys.executable,
+    )
+    return [sys.executable, "-m", "fileforge"]
+
+
+_FILEFORGE_BIN = _resolve_fileforge_bin()
 
 
 class ScanRequest(BaseModel):
@@ -112,7 +158,7 @@ def _latest_session_id() -> int | None:
     try:
         from fileforge.db import SessionDB
 
-        db_path = Path.home() / ".fileforge" / "sessions.db"
+        db_path = _resolve_db_path()
         if not db_path.exists():
             return None
         db = SessionDB(db_path)
@@ -121,8 +167,20 @@ def _latest_session_id() -> int | None:
             return sessions[0]["id"] if sessions else None
         finally:
             db.close()
-    except Exception:
+    except Exception as exc:
+        logger.warning("Failed to resolve latest session id: %s", exc)
         return None
+
+
+def _parse_session_id(output: str) -> int | None:
+    """Extract SESSION_ID=<n> from subprocess stdout."""
+    for line in output.splitlines():
+        if line.startswith("SESSION_ID="):
+            try:
+                return int(line.split("=", 1)[1].strip())
+            except ValueError:
+                return None
+    return None
 
 
 def _run_scan(job_id: str, cmd: list[str]) -> None:
@@ -135,7 +193,8 @@ def _run_scan(job_id: str, cmd: list[str]) -> None:
                 "error": result.stderr[-1000:] or "Scan exited with non-zero status",
             }
             return
-        _scan_jobs[job_id] = {"status": "complete", "session_id": _latest_session_id()}
+        session_id = _parse_session_id(result.stdout) or _latest_session_id()
+        _scan_jobs[job_id] = {"status": "complete", "session_id": session_id}
     except subprocess.TimeoutExpired:
         _scan_jobs[job_id] = {"status": "error", "error": "Scan timed out after 1 hour"}
     except Exception as e:
@@ -154,9 +213,15 @@ async def scan_endpoint(request: ScanRequest) -> Any:
             status_code=400, detail=f"Invalid directories: {invalid_dirs}"
         )
 
-    cmd = [_FILEFORGE_BIN, "scan"] + expanded_dirs
-    if request.config:
+    cmd = [*_FILEFORGE_BIN, "scan", *expanded_dirs]
+
+    # Always pass the discovered config so the subprocess honours user settings
+    cfg_path = _config_path()
+    if cfg_path.exists():
+        cmd.extend(["--config", str(cfg_path)])
+    elif request.config:
         cmd.extend(["--config", request.config])
+
     if request.no_classify:
         cmd.append("--no-classify")
     if request.phase_2:
@@ -185,27 +250,7 @@ async def get_stats() -> dict:
     try:
         from fileforge.db import SessionDB
 
-        output_dir = Path.home() / ".fileforge"
-        config_path = Path.home() / ".fileforge" / "fileforge.toml"
-        if config_path.exists():
-            try:
-                import tomllib
-            except ImportError:
-                try:
-                    import tomli as tomllib
-                except ImportError:
-                    tomllib = None
-
-            if tomllib:
-                try:
-                    with open(config_path, "rb") as f:
-                        config = tomllib.load(f)
-                    if "general" in config and "output_dir" in config["general"]:
-                        output_dir = Path(config["general"]["output_dir"]).expanduser()
-                except Exception:
-                    pass
-
-        db_path = output_dir / "sessions.db"
+        db_path = _resolve_db_path()
         if not db_path.exists():
             return {
                 "total_files": 0,
@@ -218,25 +263,13 @@ async def get_stats() -> dict:
 
         db = SessionDB(db_path)
         try:
-            records = db.get_all_records()
+            stats = db.get_stats()
+            records = db.get_all_records(limit=100)
         finally:
             db.close()
 
-        total_files = len(records)
-        total_size = sum(r.size_bytes for r in records)
-        duplicates = [r for r in records if r.is_duplicate]
-        stale = [r for r in records if r.is_stale]
-        categories = set(r.category or "Other" for r in records)
-
-        return {
-            "total_files": total_files,
-            "total_size": total_size,
-            "duplicates": len(duplicates),
-            "duplicates_size": sum(r.size_bytes for r in duplicates),
-            "stale": len(stale),
-            "categories": len(categories),
-            "records": [r.model_dump() for r in records[:100]],
-        }
+        stats["records"] = [r.model_dump() for r in records]
+        return stats
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -247,8 +280,7 @@ async def list_sessions() -> dict[str, list]:
     try:
         from fileforge.db import SessionDB
 
-        output_dir = Path.home() / ".fileforge"
-        db_path = output_dir / "sessions.db"
+        db_path = _resolve_db_path()
 
         if not db_path.exists():
             return {"sessions": []}
@@ -270,8 +302,7 @@ async def get_session(session_id: int) -> dict:
     try:
         from fileforge.db import SessionDB
 
-        output_dir = Path.home() / ".fileforge"
-        db_path = output_dir / "sessions.db"
+        db_path = _resolve_db_path()
 
         if not db_path.exists():
             raise HTTPException(status_code=404, detail="Database not found")

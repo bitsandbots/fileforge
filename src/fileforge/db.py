@@ -255,14 +255,55 @@ class SessionDB:
         for row in cur:
             yield self._row_to_record(row)
 
-    def get_all_records(self) -> list[FileRecord]:
-        """Get all records from the database.
+    def get_all_records(self, limit: int = 0) -> list[FileRecord]:
+        """Get records from the database, optionally limited.
+
+        Args:
+            limit: Maximum number of records to return. 0 means no limit.
 
         Returns:
-            List of all FileRecords.
+            List of FileRecords.
         """
-        cur = self._conn.execute("SELECT * FROM file_records")
+        if limit:
+            cur = self._conn.execute(
+                "SELECT * FROM file_records ORDER BY id DESC LIMIT ?", (limit,)
+            )
+        else:
+            cur = self._conn.execute("SELECT * FROM file_records")
         return [self._row_to_record(row) for row in cur]
+
+    def get_stats(self) -> dict:
+        """Compute aggregate stats via SQL for performance.
+
+        Returns:
+            Dict with total_files, total_size, duplicates,
+            duplicates_size, stale, categories.
+        """
+        cur = self._conn.execute("""
+            SELECT
+                COUNT(*) AS total_files,
+                COALESCE(SUM(size_bytes), 0) AS total_size,
+                SUM(CASE WHEN is_duplicate THEN 1 ELSE 0 END) AS duplicates,
+                COALESCE(SUM(CASE WHEN is_duplicate THEN size_bytes ELSE 0 END), 0)
+                    AS duplicates_size,
+                SUM(CASE WHEN is_stale THEN 1 ELSE 0 END) AS stale
+            FROM file_records
+        """)
+        row = cur.fetchone()
+
+        cat_cur = self._conn.execute(
+            "SELECT DISTINCT category FROM file_records WHERE category IS NOT NULL"
+        )
+        categories = sum(1 for _ in cat_cur)
+
+        return {
+            "total_files": row["total_files"],
+            "total_size": row["total_size"],
+            "duplicates": row["duplicates"] or 0,
+            "duplicates_size": row["duplicates_size"] or 0,
+            "stale": row["stale"] or 0,
+            "categories": categories,
+        }
 
     def complete_session(self, session_id: int) -> None:
         """Mark a session as complete by setting its completed_at timestamp.
