@@ -127,10 +127,13 @@ python -m pytest -q           # run tests
 
 ## Documentation
 
+- [Blueprint Overview](docs/Blueprint_Overview.html) — Single-page HTML reference (open in browser)
 - [Overview](docs/overview.md) — Project goals and capabilities
 - [Architecture](docs/architecture.md) — Design and data flow
 - [Setup Guide](docs/setup.md) — Detailed installation and usage
 - [Tech Stack](docs/tech-stack.md) — Dependencies and requirements
+- [API Reference](docs/api.md) — Python API + REST endpoints
+- [Gap Analysis](docs/gap-analysis.md) — Known gaps between docs and code
 
 ## License
 

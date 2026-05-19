@@ -82,7 +82,7 @@ Five tables: `sessions`, `file_records`, `action_logs`, `trash`, `job_history`. 
 
 ### Extractor dispatch
 
-`extractor/__init__.py` inspects extension and MIME type, then calls the matching module. OCR (`extractor/image.py`) requires the `ocr` extra (`pytesseract`). Unreadable files return `None` rather than raising.
+`extractor/__init__.py` inspects extension and MIME type, then calls the matching module. Unreadable files return `None` rather than raising. Note: `extractor/image.py` (OCR via pytesseract) and `extractor/xlsx.py` are planned but not yet implemented — see `docs/gap-analysis.md`.
 
 ### Phase 2 analyses (embeddings, staleness, versions)
 

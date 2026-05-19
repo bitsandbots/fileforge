@@ -5,8 +5,8 @@
 | Requirement | Version | Notes |
 |---|---|---|
 | Python | 3.11+ | Required. 3.12+ recommended. |
-| Ollama | Latest | Required for AI classification. Not required for `--no-classify` runs. |
-| Tesseract | Any | Optional. Not used in Phase 1; reserved for OCR extraction (Phase 2). |
+| Ollama | Latest | Optional. Required only for AI classification. Use `--no-classify` to skip. |
+| Tesseract | Any | Optional. Required only if the `[ocr]` extra is installed (extractor planned). |
 
 Ollama must be running and accessible at `http://localhost:11434` (default) before running `fileforge scan` without `--no-classify`.
 
@@ -52,7 +52,7 @@ fileforge scan ~/Documents --phase-2
 If using interactive HTML reports and file actions:
 
 ```bash
-pip install "fileforge[ui]"  # Installs Jinja2 for HTML templating
+pip install "fileforge[web]"  # Installs fastapi, uvicorn, Jinja2
 ```
 
 Usage:
@@ -311,6 +311,40 @@ fileforge status
 ```
 
 No options. Reads from the SQLite database at `output_dir`.
+
+### `fileforge server`
+
+Starts the web UI server. Open `http://localhost:8082` in a browser for the interactive dashboard.
+
+```
+fileforge server [OPTIONS]
+```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--host` | str | `127.0.0.1` | Host to bind to. Use `0.0.0.0` for LAN access. |
+| `--port` | int | `8082` | Port to listen on. |
+| `--reload` | flag | off | Auto-reload on code changes (development mode). |
+
+**Examples:**
+
+```bash
+# Start locally
+fileforge server
+
+# Expose on LAN (Raspberry Pi, etc.)
+fileforge server --host 0.0.0.0 --port 8082
+
+# Development mode with auto-reload
+fileforge server --reload
+```
+
+**Via systemd (persistent):**
+
+```bash
+bash src/fileforge/systemd/install.sh --server
+systemctl --user status fileforge-server.service
+```
 
 ## Configuration File
 

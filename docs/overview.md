@@ -8,25 +8,25 @@ The core problem it solves: file systems accumulate noise over time. Duplicate d
 
 ## Status
 
-**Version 0.1.0** — Alpha release. All planned phases complete and tested (91/91 tests passing).
+**Version 0.1.7** — Alpha release. All planned phases (1–4) complete and tested.
 
 | Phase | Status | Description |
 |-------|--------|-------------|
-| Phase 1 | ✅ Complete | Core scanning, extraction, classification |
-| Phase 2 | ✅ Complete | Near-duplicates, stale files, versions |
-| Phase 3 | ✅ Complete | Interactive reports, actions, trash |
-| Phase 4 | ✅ Complete | Watch mode, scheduled scans, systemd |
-| Phase 5 | 📋 Planned | GUI front-end (React PWA) |
-| Phase 6 | 📋 Planned | Cross-device sync |
+| Phase 1 | Complete | Core scanning, extraction, classification |
+| Phase 2 | Complete | Near-duplicates, stale files, versions |
+| Phase 3 | Complete | Interactive reports, actions, trash |
+| Phase 4 | Complete | Watch mode, scheduled scans, systemd |
+| Phase 5 | Planned | GUI front-end (React PWA) |
+| Phase 6 | Planned | Cross-device sync |
 
 ## Key Capabilities
 
 ### Phase 1 — Core Scanning
 
 - **Recursive scanning**: Walk one or more root directories, respecting depth limits and `.forgeignore` patterns.
-- **Content extraction**: Extract text snippets from 30+ formats (`.txt`, `.md`, `.py`, `.pdf`, `.docx`, `.xlsx`, `.html`, images via OCR, and more).
+- **Content extraction**: Extract text snippets from 30+ formats (`.txt`, `.md`, `.py`, `.pdf`, `.docx`, and more).
 - **Exact deduplication**: SHA-256 hash comparison identifies identical files regardless of filename or location.
-- **AI classification**: Local Ollama LLM (`qwen3:4b`) reads a content snippet and assigns each file a nested category (e.g., `documents/finance/receipts`).
+- **AI classification**: Local Ollama LLM (`qwen3:4b`) reads a content snippet and assigns each file a nested category (e.g., `documents/finance/receipts`). Gracefully degrades to rule-based inference when Ollama is unavailable.
 - **Rich terminal report**: Scan summary with file counts, group sizes, and estimated reclaimable space.
 - **Session persistence**: SQLite database stores scan results for querying and auditing.
 
@@ -39,29 +39,37 @@ The core problem it solves: file systems accumulate noise over time. Duplicate d
 
 ### Phase 3 — Interactive Actions
 
-- **Interactive HTML reports**: Per-file action buttons with Rich terminal fallback.
+- **Interactive HTML reports**: Per-file action buttons via Jinja2-rendered reports.
 - **Dry-run mode**: Preview actions before execution (`--dry-run`).
-- **Trash staging**: Date-based organization with 30-day auto-cleanup.
-- **Undo support**: Action logs persisted in database for recovery.
+- **Trash staging**: Date-based organization with configurable auto-cleanup.
 - **File organization**: `fileforge organize <dirs>` moves files to `~/Organized/<category>/`.
 - **Duplicate handling**: `fileforge dupes <dirs>` finds and manages duplicates.
+- **Action audit trail**: All file operations recorded in the SQLite `action_logs` table for undo support.
 
 ### Phase 4 — Background Automation
 
-- **Watch mode**: `fileforge watch <dirs>` monitors filesystem for changes.
+- **Watch mode**: `fileforge watch <dirs>` monitors filesystem for changes with configurable debouncing.
 - **Scheduled scans**: `fileforge schedule <dirs> --cron "0 2 * * *"` for automated daily scans.
-- **Systemd integration**: Linux timer/service for unattended operation.
-- **Job audit trail**: All scheduled executions logged with file counts and actions.
+- **Systemd integration**: Linux timer/service for unattended operation (scan timer + web UI server).
+- **Job audit trail**: All scheduled executions logged with file counts and outcomes in `job_history`.
+
+### Web UI
+
+- **Dashboard**: `fileforge server` starts a FastAPI web server on `http://localhost:8082`.
+- **Async scanning**: Scans run non-blocking; the UI polls for job status via `GET /api/job/{job_id}`.
+- **Directory browser**: Filesystem picker widget for selecting scan targets.
+- **Settings management**: In-browser TOML configuration editor — all config sections exposed.
+- **Session history**: Browse past scan sessions with file-level detail.
 
 ## Design Philosophy
 
-**Offline-first, data-sovereign.** Classification runs via Ollama on your local machine. File contents never leave your system. This is not negotiable — cloud LLM APIs are explicitly excluded from the design.
+**Offline-first, data-sovereign.** Classification runs via Ollama on your local machine. File contents never leave your system. Cloud LLM APIs are explicitly excluded from the design.
 
-**Safe by default.** Phase 1 reads and reports only. No files are moved, renamed, or deleted without explicit commands. All destructive operations require confirmation or dry-run preview.
+**Safe by default.** Phase 1 reads and reports only. No files are moved, renamed, or deleted without explicit commands. All destructive operations support dry-run preview.
 
-**Transparent and auditable.** Every scan is recorded to SQLite with full metadata. Every classification decision includes the category returned by the model. Nothing happens silently.
+**Transparent and auditable.** Every scan is recorded to SQLite with full metadata. Every classification decision includes the category returned by the model. Every file action is logged and reversible.
 
-**Graceful degradation.** If Ollama is unavailable, classification falls back gracefully and scan continues. If a file can't be read, it's recorded with an empty snippet rather than aborting the run.
+**Graceful degradation.** If Ollama is unavailable, classification falls back to "uncategorized" and the scan continues. If a file can't be read, it's recorded with an empty snippet rather than aborting the run.
 
 ## CoreConduit Context
 
@@ -72,20 +80,24 @@ The reference deployment target is a Raspberry Pi 5 (8GB RAM). FileForge is inte
 ## Quick Start
 
 ```bash
-# Install
-pip install fileforge
-
-# Or from source
+# Install from source
 git clone https://github.com/coreconduit/fileforge.git
 cd fileforge
 bash scripts/install.sh
 
-# Pull required Ollama models
+# Pull required Ollama models (optional — skip with --no-classify)
 ollama pull qwen3:4b
 ollama pull nomic-embed-text
 
-# Scan your Documents folder (dry-run by default)
-fileforge scan ~/Documents --dry-run
+# Scan your Documents folder (read-only, no changes made)
+fileforge scan ~/Documents
+
+# Scan without AI (fast, no Ollama required)
+fileforge scan ~/Documents --no-classify
+
+# Open the web UI
+fileforge server
+# → http://localhost:8082
 
 # Organize files by category
 fileforge organize ~/Downloads --dry-run
@@ -104,5 +116,6 @@ fileforge dupes ~/Documents
 | `fileforge watch <dirs>` | Monitor directories for changes |
 | `fileforge schedule <dirs>` | Schedule automated scans |
 | `fileforge status` | Show current session status |
+| `fileforge server` | Start the web UI on http://localhost:8082 |
 
 Run `fileforge --help` or `fileforge <command> --help` for detailed options.

@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FileForge — Blueprint Overview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0d1421;
+    --silver: #e9edf2;
+    --blue: #2b7de9;
+    --orange: #e07018;
+    --dark: #060f1b;
+    --text: #1a2233;
+    --text-muted: #556080;
+    --border: #d1d8e4;
+    --card-bg: #ffffff;
+    --sidebar-w: 260px;
+    --header-h: 60px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background: var(--silver);
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1.65;
+  }
+
+  /* ── Header ── */
+  header {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: var(--header-h);
+    background: var(--navy);
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    z-index: 100;
+    gap: 16px;
+  }
+
+  .brand {
+    font-family: 'Exo 2', sans-serif;
+    font-size: 20px;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.3px;
+  }
+  .brand span { color: var(--orange); }
+
+  .header-subtitle {
+    font-size: 12px;
+    color: rgba(255,255,255,0.45);
+    font-family: 'IBM Plex Mono', monospace;
+    margin-left: auto;
+  }
+
+  .version-badge {
+    background: rgba(43,125,233,0.25);
+    color: var(--blue);
+    border: 1px solid rgba(43,125,233,0.4);
+    border-radius: 4px;
+    padding: 2px 10px;
+    font-size: 12px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 500;
+  }
+
+  /* ── Sidebar ── */
+  nav {
+    position: fixed;
+    top: var(--header-h);
+    left: 0;
+    bottom: 0;
+    width: var(--sidebar-w);
+    background: var(--dark);
+    overflow-y: auto;
+    padding: 20px 0 40px;
+  }
+
+  nav .nav-section {
+    padding: 6px 20px 2px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.3);
+  }
+
+  nav a {
+    display: block;
+    padding: 7px 20px;
+    font-size: 13px;
+    color: rgba(255,255,255,0.6);
+    text-decoration: none;
+    transition: color 0.15s, background 0.15s;
+  }
+  nav a:hover { color: #fff; background: rgba(255,255,255,0.05); }
+  nav a.active { color: var(--blue); font-weight: 600; }
+
+  nav a.sub {
+    padding-left: 34px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.4);
+  }
+  nav a.sub:hover { color: rgba(255,255,255,0.7); }
+
+  /* ── Main content ── */
+  main {
+    margin-left: var(--sidebar-w);
+    padding-top: var(--header-h);
+    min-height: 100vh;
+  }
+
+  .content {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 48px 40px 80px;
+  }
+
+  /* ── Sections ── */
+  .doc-section {
+    margin-bottom: 56px;
+    scroll-margin-top: calc(var(--header-h) + 20px);
+  }
+
+  h1.page-title {
+    font-family: 'Exo 2', sans-serif;
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--navy);
+    margin-bottom: 6px;
+  }
+
+  .page-subtitle {
+    color: var(--text-muted);
+    font-size: 14px;
+    margin-bottom: 40px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  h2 {
+    font-family: 'Exo 2', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--navy);
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  h2::before {
+    content: '';
+    display: inline-block;
+    width: 4px;
+    height: 22px;
+    background: linear-gradient(180deg, var(--blue), var(--orange));
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  h3 {
+    font-family: 'Exo 2', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--navy);
+    margin: 24px 0 10px;
+  }
+
+  h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 18px 0 8px;
+  }
+
+  p { margin-bottom: 14px; }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--card-bg);
+    border-radius: 8px;
+    border-top: 3px solid transparent;
+    border-image: linear-gradient(90deg, var(--blue), var(--orange)) 1;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .stat-card {
+    background: var(--card-bg);
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+    border-top: 3px solid;
+  }
+  .stat-card:nth-child(1) { border-color: var(--blue); }
+  .stat-card:nth-child(2) { border-color: var(--orange); }
+  .stat-card:nth-child(3) { border-color: #27ae60; }
+  .stat-card:nth-child(4) { border-color: #9b59b6; }
+  .stat-card:nth-child(5) { border-color: #e74c3c; }
+  .stat-card:nth-child(6) { border-color: #f39c12; }
+
+  .stat-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .stat-value {
+    font-family: 'Exo 2', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--navy);
+  }
+
+  /* ── Code ── */
+  pre {
+    background: var(--navy);
+    color: #c8d3e8;
+    border-radius: 6px;
+    padding: 16px 20px;
+    overflow-x: auto;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    margin: 12px 0 18px;
+  }
+
+  code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    background: rgba(43,125,233,0.08);
+    color: #1a5ebf;
+    padding: 2px 6px;
+    border-radius: 3px;
+  }
+
+  pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+
+  /* ── Tables ── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0 20px;
+    font-size: 13.5px;
+    background: var(--card-bg);
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+
+  th {
+    background: var(--navy);
+    color: rgba(255,255,255,0.85);
+    font-family: 'Exo 2', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    padding: 10px 14px;
+    text-align: left;
+  }
+
+  td {
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  tr:last-child td { border-bottom: none; }
+  tr:nth-child(even) td { background: #f8fafc; }
+
+  /* ── Badges ── */
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .badge-green { background: #e6f7ed; color: #1e7c3e; }
+  .badge-blue { background: #e6f0fc; color: #1a5ebf; }
+  .badge-orange { background: #fef3e6; color: #b05a10; }
+  .badge-gray { background: #eef1f5; color: #4a5568; }
+
+  /* ── Phase list ── */
+  .phase-list { list-style: none; }
+  .phase-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .phase-list li:last-child { border-bottom: none; }
+
+  .phase-num {
+    font-family: 'Exo 2', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    background: var(--navy);
+    color: rgba(255,255,255,0.7);
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .phase-num.done { background: var(--blue); color: #fff; }
+  .phase-num.planned { background: #eef1f5; color: var(--text-muted); }
+
+  .phase-text strong { display: block; font-weight: 600; margin-bottom: 2px; }
+  .phase-text span { color: var(--text-muted); font-size: 13px; }
+
+  /* ── Architecture diagram ── */
+  .arch-diagram {
+    background: var(--navy);
+    color: #a8bcd4;
+    border-radius: 8px;
+    padding: 20px 24px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    line-height: 1.7;
+    overflow-x: auto;
+    white-space: pre;
+    margin: 16px 0;
+  }
+
+  /* ── Gap list ── */
+  .gap-item {
+    background: var(--card-bg);
+    border-radius: 6px;
+    border-left: 4px solid;
+    padding: 14px 18px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  .gap-item.medium { border-color: var(--orange); }
+  .gap-item.low { border-color: #95a5a6; }
+  .gap-item.fixed { border-color: #27ae60; }
+
+  .gap-title { font-weight: 600; margin-bottom: 4px; }
+  .gap-impact { font-size: 12px; color: var(--text-muted); }
+  .gap-desc { font-size: 13.5px; color: var(--text); margin-top: 6px; }
+
+  /* ── Endpoint block ── */
+  .endpoint {
+    background: var(--card-bg);
+    border-radius: 6px;
+    border-left: 4px solid var(--blue);
+    padding: 14px 18px;
+    margin-bottom: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+
+  .endpoint-method {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    margin-right: 8px;
+  }
+  .method-get { color: #27ae60; }
+  .method-post { color: var(--blue); }
+
+  .endpoint-path {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    color: var(--navy);
+    font-weight: 500;
+  }
+
+  .endpoint-desc {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  /* ── Callout ── */
+  .callout {
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 16px 0;
+    font-size: 13.5px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .callout-info { background: #e8f1fd; border-left: 4px solid var(--blue); }
+  .callout-warn { background: #fef8e6; border-left: 4px solid var(--orange); }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
+
+  @media (max-width: 800px) {
+    nav { display: none; }
+    main { margin-left: 0; }
+    .content { padding: 32px 20px 60px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">File<span>Forge</span></div>
+  <div class="version-badge">v0.1.7</div>
+  <div class="header-subtitle">Blueprint Overview &mdash; CoreConduit Consulting Services</div>
+</header>
+
+<nav>
+  <div class="nav-section">Getting Started</div>
+  <a href="#overview">Overview</a>
+  <a href="#status">Project Status</a>
+  <a href="#quickstart">Quick Start</a>
+
+  <div class="nav-section" style="margin-top:12px">Architecture</div>
+  <a href="#architecture">System Diagram</a>
+  <a href="#modules">Module Map</a>
+  <a href="#dataflow">Data Flow</a>
+  <a href="#schema">Database Schema</a>
+
+  <div class="nav-section" style="margin-top:12px">Reference</div>
+  <a href="#cli">CLI Commands</a>
+  <a href="#rest-api">REST API</a>
+  <a href="#config">Configuration</a>
+  <a href="#setup">Setup Guide</a>
+
+  <div class="nav-section" style="margin-top:12px">Tech</div>
+  <a href="#stack">Tech Stack</a>
+  <a href="#formats">File Formats</a>
+
+  <div class="nav-section" style="margin-top:12px">Quality</div>
+  <a href="#gaps">Gap Analysis</a>
+  <a href="#roadmap">Roadmap</a>
+</nav>
+
+<main>
+<div class="content">
+
+  <h1 class="page-title">FileForge Blueprint</h1>
+  <div class="page-subtitle">Comprehensive technical reference &mdash; v0.1.7 &mdash; 2026-05-19</div>
+
+  <!-- OVERVIEW -->
+  <section class="doc-section" id="overview">
+    <h2>Overview</h2>
+    <p>FileForge is an AI-powered file organizer that runs entirely on your local machine. It scans directories, reads file contents, and uses a locally hosted LLM to classify files into meaningful folder taxonomies — no cloud services, no data leaving your system.</p>
+    <p>The core problem it solves: file systems accumulate noise over time. Duplicate downloads, stale drafts, misnamed exports, and forgotten temp files pile up in ways that are expensive to clean manually but too risky to automate blindly. FileForge provides an intelligent, auditable, and reversible process for reclaiming that space and restoring order.</p>
+
+    <div class="card">
+      <h4>Design Principles</h4>
+      <div class="card-grid" style="grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));">
+        <div>
+          <strong style="color:var(--blue)">Offline-First</strong>
+          <p style="font-size:13px;margin-top:4px">Classification via Ollama on your local machine. No cloud APIs. No data leaves your system.</p>
+        </div>
+        <div>
+          <strong style="color:var(--orange)">Safe by Default</strong>
+          <p style="font-size:13px;margin-top:4px">Phase 1 reads and reports only. All destructive operations require explicit commands + dry-run preview.</p>
+        </div>
+        <div>
+          <strong style="color:#27ae60">Transparent</strong>
+          <p style="font-size:13px;margin-top:4px">Every scan, classification, and file action is recorded to SQLite with full metadata. Nothing happens silently.</p>
+        </div>
+        <div>
+          <strong style="color:#9b59b6">Graceful Degradation</strong>
+          <p style="font-size:13px;margin-top:4px">If Ollama is unavailable, scans continue with rule-based fallback. If a file can't be read, it's recorded and skipped.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATUS -->
+  <section class="doc-section" id="status">
+    <h2>Project Status</h2>
+    <ul class="phase-list">
+      <li>
+        <div class="phase-num done">1</div>
+        <div class="phase-text">
+          <strong>Core Scanning <span class="badge badge-green">Complete</span></strong>
+          <span>Recursive walk, SHA-256 dedup, content extraction (33+ formats), Ollama classification, Rich reports, SQLite persistence.</span>
+        </div>
+      </li>
+      <li>
+        <div class="phase-num done">2</div>
+        <div class="phase-text">
+          <strong>Advanced Analysis <span class="badge badge-green">Complete</span></strong>
+          <span>Near-duplicate detection via embeddings (cosine similarity), stale file detection, version supersession.</span>
+        </div>
+      </li>
+      <li>
+        <div class="phase-num done">3</div>
+        <div class="phase-text">
+          <strong>Interactive Actions <span class="badge badge-green">Complete</span></strong>
+          <span>HTML reports (Jinja2), file organization, trash staging, undo via action_logs table, dry-run mode.</span>
+        </div>
+      </li>
+      <li>
+        <div class="phase-num done">4</div>
+        <div class="phase-text">
+          <strong>Background Automation <span class="badge badge-green">Complete</span></strong>
+          <span>Watch mode (watchdog), scheduled scans (APScheduler), systemd units (scan timer + web server), async FastAPI web UI.</span>
+        </div>
+      </li>
+      <li>
+        <div class="phase-num planned">5</div>
+        <div class="phase-text">
+          <strong>React PWA <span class="badge badge-gray">Planned</span></strong>
+          <span>Replace vanilla JS SPA with a React PWA with offline capability and service worker.</span>
+        </div>
+      </li>
+      <li>
+        <div class="phase-num planned">6</div>
+        <div class="phase-text">
+          <strong>Cross-Device Sync <span class="badge badge-gray">Planned</span></strong>
+          <span>Sync scan results across NEXUS multi-Pi nodes. Depends on Phase 5.</span>
+        </div>
+      </li>
+    </ul>
+  </section>
+
+  <!-- QUICK START -->
+  <section class="doc-section" id="quickstart">
+    <h2>Quick Start</h2>
+    <pre><code># Install from source
+git clone https://github.com/coreconduit/fileforge.git
+cd fileforge
+bash scripts/install.sh
+
+# Pull Ollama models (optional — skip with --no-classify)
+ollama pull qwen3:4b
+ollama pull nomic-embed-text
+
+# Read-only scan (no files changed)
+fileforge scan ~/Documents
+
+# Fast scan without AI
+fileforge scan ~/Documents --no-classify
+
+# Open the web UI
+fileforge server
+# → http://localhost:8082
+
+# Preview organization plan
+fileforge organize ~/Downloads --dry-run
+
+# Find and review duplicates
+fileforge dupes ~/Documents</code></pre>
+
+    <div class="callout callout-info">
+      <span>💡</span>
+      <div>FileForge makes <strong>no changes</strong> during <code>scan</code>. Files are only moved or deleted when you run <code>organize</code> or <code>dupes</code> — and only after confirming or removing <code>--dry-run</code>.</div>
+    </div>
+  </section>
+
+  <!-- ARCHITECTURE -->
+  <section class="doc-section" id="architecture">
+    <h2>System Architecture</h2>
+
+    <div class="arch-diagram">CLI (cli.py) — Typer
+  scan / organize / dupes / watch / schedule / status / server
+        │
+        ├── Scanner (scanner.py) ──────────────────┐
+        ├── Watcher (watch/watcher.py) ────────────┤
+        └── JobManager (schedule/) ─────────────────┤
+            FastAPI Server (api/server.py) ─────────┘
+                                                    │
+                              ┌──────────────────────▼──────────────────────┐
+                              │              SessionDB (db.py)               │
+                              │    SQLite: sessions / file_records /         │
+                              │    action_logs / trash / job_history         │
+                              └──────┬──────────────┬──────────────┬────────┘
+                                     │              │              │
+                               Extractor       Classifier     Analysis
+                              (extractor/)   (ai/classifier) (analysis/)
+                              text/pdf/docx   Ollama LLM     embeddings
+                                                             staleness
+                                                             versions
+                                     │
+                               Actions (actions/)
+                               mover / archiver / trash / prune
+                                     │
+                               Report (report/)
+                               Rich terminal + Jinja2 HTML</div>
+  </section>
+
+  <!-- MODULES -->
+  <section class="doc-section" id="modules">
+    <h2>Module Map</h2>
+
+    <h3>Core (Phase 1)</h3>
+    <table>
+      <tr><th>Module</th><th>Lines</th><th>Responsibility</th></tr>
+      <tr><td><code>cli.py</code></td><td>~960</td><td>Typer entry point for all CLI commands</td></tr>
+      <tr><td><code>config.py</code></td><td>~134</td><td>Pydantic FileForgeConfig; loads TOML</td></tr>
+      <tr><td><code>models.py</code></td><td>~59</td><td>FileRecord Pydantic model</td></tr>
+      <tr><td><code>db.py</code></td><td>~438</td><td>SQLite store; 5 tables; all writes go here</td></tr>
+      <tr><td><code>scanner.py</code></td><td>~143</td><td>Recursive walk; respects .forgeignore</td></tr>
+      <tr><td><code>extractor/__init__.py</code></td><td>~51</td><td>Dispatcher; maps extension → extractor</td></tr>
+      <tr><td><code>extractor/text.py</code></td><td>~69</td><td>33+ text/code formats + HTML via BeautifulSoup</td></tr>
+      <tr><td><code>extractor/pdf.py</code></td><td>~36</td><td>PDF via pdfplumber</td></tr>
+      <tr><td><code>extractor/docx.py</code></td><td>~34</td><td>DOCX via python-docx</td></tr>
+      <tr><td><code>analysis/dedup.py</code></td><td>~52</td><td>SHA-256 hashing + exact-dupe grouping</td></tr>
+      <tr><td><code>ai/classifier.py</code></td><td>~86</td><td>Ollama REST call; category string normalization</td></tr>
+      <tr><td><code>report/generator.py</code></td><td>~81</td><td>Rich terminal scan summary table</td></tr>
+    </table>
+
+    <h3>Analysis (Phase 2)</h3>
+    <table>
+      <tr><th>Module</th><th>Responsibility</th></tr>
+      <tr><td><code>analysis/embeddings.py</code></td><td>nomic-embed-text vectors + cosine similarity near-dup detection</td></tr>
+      <tr><td><code>analysis/staleness.py</code></td><td>Age-based stale detection + junk pattern matching</td></tr>
+      <tr><td><code>analysis/versions.py</code></td><td>Version supersession via regex (report_v1 → report_v2)</td></tr>
+    </table>
+
+    <h3>Actions (Phase 3)</h3>
+    <table>
+      <tr><th>Module</th><th>Responsibility</th></tr>
+      <tr><td><code>actions/mover.py</code></td><td>Move files with directory creation</td></tr>
+      <tr><td><code>actions/archiver.py</code></td><td>Create / extract .tar.gz archives</td></tr>
+      <tr><td><code>actions/trash.py</code></td><td>Date-organized trash staging + recovery</td></tr>
+      <tr><td><code>actions/prune.py</code></td><td>Remove empty directories after organize</td></tr>
+      <tr><td><code>report/html_generator.py</code></td><td>Jinja2 static HTML report from templates/report.html</td></tr>
+    </table>
+
+    <h3>Automation & Web (Phase 4)</h3>
+    <table>
+      <tr><th>Module</th><th>Responsibility</th></tr>
+      <tr><td><code>watch/watcher.py</code></td><td>watchdog filesystem monitor with debouncing</td></tr>
+      <tr><td><code>schedule/job_manager.py</code></td><td>APScheduler cron jobs + job_history logging</td></tr>
+      <tr><td><code>api/server.py</code></td><td>FastAPI REST server; async scan jobs; directory browser</td></tr>
+      <tr><td><code>frontend/index.html</code></td><td>Vanilla JS SPA served by FastAPI</td></tr>
+      <tr><td><code>systemd/</code></td><td>Scan timer + web server systemd units + installer</td></tr>
+    </table>
+  </section>
+
+  <!-- DATA FLOW -->
+  <section class="doc-section" id="dataflow">
+    <h2>Data Flow</h2>
+
+    <h3>CLI Scan Pipeline</h3>
+    <div class="card">
+      <ol style="padding-left:20px;line-height:2">
+        <li><strong>Scanner.scan()</strong> — recursive walk, creates FileRecord per file</li>
+        <li><strong>hash_file()</strong> — SHA-256 in 64KB chunks → FileRecord.sha256</li>
+        <li><strong>find_exact_duplicates()</strong> — group by hash, flag is_duplicate</li>
+        <li><strong>extract_snippet()</strong> — dispatch to extractor; return None on error</li>
+        <li><strong>classify_file()</strong> — Ollama REST call → category string (skipped with --no-classify)</li>
+        <li><strong>SessionDB.save_records()</strong> — bulk insert; complete_session() stamps completed_at</li>
+        <li><strong>Phase 2 analysis</strong> — embeddings / staleness / versions (only with --phase-2)</li>
+        <li><strong>print_scan_summary()</strong> — Rich table to stdout</li>
+      </ol>
+    </div>
+
+    <h3>Web UI Async Scan</h3>
+    <div class="card">
+      <ol style="padding-left:20px;line-height:2">
+        <li>Browser: <code>POST /api/scan</code> with directories + options</li>
+        <li>Server: validates dirs, builds subprocess cmd, runs in thread pool, returns <code>job_id</code></li>
+        <li>Browser polls: <code>GET /api/job/{job_id}</code> until status is complete or error</li>
+        <li>Browser: <code>GET /api/session/{session_id}</code> → full FileRecord list for rendering</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- SCHEMA -->
+  <section class="doc-section" id="schema">
+    <h2>Database Schema</h2>
+    <p>Location: <code>~/.fileforge/sessions.db</code> (configurable via <code>output_dir</code>).</p>
+    <table>
+      <tr><th>Table</th><th>Purpose</th><th>Key Columns</th></tr>
+      <tr><td><code>sessions</code></td><td>One row per scan run</td><td>id, created_at, completed_at, root_paths, file_count, status</td></tr>
+      <tr><td><code>file_records</code></td><td>One row per file per session</td><td>path, sha256, category, embedding, is_duplicate, is_stale, is_superseded</td></tr>
+      <tr><td><code>action_logs</code></td><td>Audit trail for file actions</td><td>action (move/archive/trash), source, destination, timestamp</td></tr>
+      <tr><td><code>trash</code></td><td>Trash entries for recovery</td><td>original_path, trash_path, moved_at</td></tr>
+      <tr><td><code>job_history</code></td><td>Scheduled job execution records</td><td>cron_expr, started_at, ended_at, status, file_count</td></tr>
+    </table>
+  </section>
+
+  <!-- CLI COMMANDS -->
+  <section class="doc-section" id="cli">
+    <h2>CLI Commands</h2>
+    <table>
+      <tr><th>Command</th><th>Description</th><th>Key Flags</th></tr>
+      <tr>
+        <td><code>fileforge scan &lt;dirs&gt;</code></td>
+        <td>Scan and classify files</td>
+        <td><code>--no-classify</code> <code>--phase-2</code> <code>--dry-run</code> <code>--config</code></td>
+      </tr>
+      <tr>
+        <td><code>fileforge organize &lt;dirs&gt;</code></td>
+        <td>Move files to categorized folders</td>
+        <td><code>--dry-run</code> <code>--trash-dir</code> <code>--config</code></td>
+      </tr>
+      <tr>
+        <td><code>fileforge dupes &lt;dirs&gt;</code></td>
+        <td>Find and manage duplicates</td>
+        <td><code>--delete</code> <code>--move</code> <code>--dry-run</code></td>
+      </tr>
+      <tr>
+        <td><code>fileforge watch &lt;dirs&gt;</code></td>
+        <td>Monitor for changes and scan automatically</td>
+        <td><code>--phase-2</code> <code>--debounce</code></td>
+      </tr>
+      <tr>
+        <td><code>fileforge schedule &lt;dirs&gt;</code></td>
+        <td>Schedule cron-based scans</td>
+        <td><code>--cron "0 2 * * *"</code> <code>--phase-2</code></td>
+      </tr>
+      <tr>
+        <td><code>fileforge status</code></td>
+        <td>Show latest session info</td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <td><code>fileforge server</code></td>
+        <td>Start web UI on http://localhost:8082</td>
+        <td><code>--host</code> <code>--port</code> <code>--reload</code></td>
+      </tr>
+    </table>
+  </section>
+
+  <!-- REST API -->
+  <section class="doc-section" id="rest-api">
+    <h2>REST API</h2>
+    <p>Served by <code>api/server.py</code> (FastAPI). Start with <code>fileforge server</code>.</p>
+
+    <div class="endpoint">
+      <span class="endpoint-method method-get">GET</span>
+      <span class="endpoint-path">/api/health</span>
+      <div class="endpoint-desc">Health check. Returns <code>{"status":"ok","version":"0.1.7"}</code></div>
+    </div>
+
+    <div class="endpoint">
+      <span class="endpoint-method method-post">POST</span>
+      <span class="endpoint-path">/api/scan</span>
+      <div class="endpoint-desc">Start async scan. Body: <code>{"directories":["~/Docs"],"no_classify":false,"phase_2":false}</code>. Returns <code>job_id</code>. HTTP 409 if a scan is already running.</div>
+    </div>
+
+    <div class="endpoint">
+      <span class="endpoint-method method-get">GET</span>
+      <span class="endpoint-path">/api/job/{job_id}</span>
+      <div class="endpoint-desc">Poll scan status. Returns <code>{"status":"running|complete|error","session_id":42}</code></div>
+    </div>
+
+    <div class="endpoint">
+      <span class="endpoint-method method-get">GET</span>
+      <span class="endpoint-path">/api/stats</span>
+      <div class="endpoint-desc">Aggregate stats from latest scan + up to 100 file records.</div>
+    </div>
+
+    <div class="endpoint">
+      <span class="endpoint-method method-get">GET</span>
+      <span class="endpoint-path">/api/sessions</span>
+      <div class="endpoint-desc">List all scan sessions, newest first.</div>
+    </div>
+
+    <div class="endpoint">
+      <span class="endpoint-method method-get">GET</span>
+      <span class="endpoint-path">/api/session/{session_id}</span>
+      <div class="endpoint-desc">All FileRecord objects for a session.</div>
+    </div>
+
+    <div class="endpoint">
+      <span class="endpoint-method method-get">GET</span>
+      <span class="endpoint-path">/api/config</span>
+      <div class="endpoint-desc">Current FileForgeConfig as JSON.</div>
+    </div>
+
+    <div class="endpoint">
+      <span class="endpoint-method method-post">POST</span>
+      <span class="endpoint-path">/api/config</span>
+      <div class="endpoint-desc">Validate and persist a new configuration to <code>fileforge.toml</code>.</div>
+    </div>
+
+    <div class="endpoint">
+      <span class="endpoint-method method-get">GET</span>
+      <span class="endpoint-path">/api/browse?path=</span>
+      <div class="endpoint-desc">List non-hidden subdirectories at <code>path</code> for the directory picker widget.</div>
+    </div>
+  </section>
+
+  <!-- CONFIGURATION -->
+  <section class="doc-section" id="config">
+    <h2>Configuration</h2>
+    <p>Config is searched in order: <code>--config</code> CLI flag → <code>~/.config/fileforge/fileforge.toml</code> (XDG) → <code>~/.fileforge/fileforge.toml</code> (legacy) → built-in defaults.</p>
+
+    <pre><code>[general]
+scan_dirs = ["~/Documents", "~/Downloads"]
+output_dir = "~/.fileforge"
+max_depth = -1            # -1 = unlimited
+max_extract_size = 52428800
+
+[ai]
+classification_model = "qwen3:4b"
+embedding_model = "nomic-embed-text"
+ollama_url = "http://localhost:11434"
+snippet_length = 2000
+category_hints = """
+I work with nonprofits and embedded systems.
+Priority categories: contracts, source-code, documentation.
+"""
+
+[duplicates]
+similarity_threshold = 0.92
+semantic_dedup = true
+
+[staleness]
+stale_days = 365
+junk_patterns = ["Thumbs.db", ".DS_Store", "~$*", "*.tmp"]
+temp_patterns = ["*.bak", "*.swp", "*.orig"]
+detect_versions = true
+
+[ignore]
+patterns = [".git", "node_modules", "__pycache__", ".venv"]</code></pre>
+
+    <p>Per-directory overrides: create a <code>.forgeignore</code> file using gitignore glob syntax. Patterns are merged with <code>[ignore]</code> from the TOML config.</p>
+  </section>
+
+  <!-- SETUP -->
+  <section class="doc-section" id="setup">
+    <h2>Setup Guide</h2>
+
+    <h3>Requirements</h3>
+    <table>
+      <tr><th>Requirement</th><th>Version</th><th>Notes</th></tr>
+      <tr><td>Python</td><td>3.11+</td><td>3.12+ recommended</td></tr>
+      <tr><td>Ollama</td><td>Latest</td><td>Optional — use <code>--no-classify</code> to skip</td></tr>
+      <tr><td>Tesseract</td><td>Any</td><td>Only needed for OCR extra (extractor planned)</td></tr>
+    </table>
+
+    <h3>Installation</h3>
+    <pre><code># Development install (recommended)
+git clone https://github.com/coreconduit/fileforge.git
+cd fileforge
+bash scripts/install.sh        # interactive: venv, models, optional extras, systemd
+
+# Manual install
+pip install -e ".[dev]"        # core + dev deps
+pip install -e ".[ann]"        # add near-dup ANN support
+pip install -e ".[ocr]"        # add OCR support (+ Tesseract binary)</code></pre>
+
+    <h3>Systemd Services (Linux)</h3>
+    <pre><code># Install both scan timer and web server
+bash src/fileforge/systemd/install.sh
+
+# Or selectively
+bash src/fileforge/systemd/install.sh --scan    # scan timer only
+bash src/fileforge/systemd/install.sh --server  # web UI only
+
+# Manage
+systemctl --user status fileforge-scan.timer
+systemctl --user status fileforge-server.service
+journalctl --user -u fileforge-scan.service</code></pre>
+
+    <h3>Ollama Setup</h3>
+    <pre><code>ollama pull qwen3:4b          # ~2.5 GB classification model
+ollama pull nomic-embed-text  # ~270 MB embedding model (Phase 2)
+ollama list</code></pre>
+
+    <h3>Pre-release Check</h3>
+    <pre><code>bash scripts/check.sh         # pytest + black + ruff — must pass clean</code></pre>
+  </section>
+
+  <!-- TECH STACK -->
+  <section class="doc-section" id="stack">
+    <h2>Tech Stack</h2>
+    <table>
+      <tr><th>Package</th><th>Version</th><th>Purpose</th></tr>
+      <tr><td><code>typer[all]</code></td><td>>=0.12</td><td>CLI framework with shell completion</td></tr>
+      <tr><td><code>rich</code></td><td>>=13</td><td>Terminal formatting and progress</td></tr>
+      <tr><td><code>pydantic</code></td><td>>=2</td><td>Data validation and settings</td></tr>
+      <tr><td><code>fastapi</code></td><td>>=0.115</td><td>REST API and web UI server</td></tr>
+      <tr><td><code>uvicorn</code></td><td>>=0.32</td><td>ASGI server</td></tr>
+      <tr><td><code>Jinja2</code></td><td>>=3</td><td>HTML report templating</td></tr>
+      <tr><td><code>pdfplumber</code></td><td>>=0.11</td><td>PDF text extraction</td></tr>
+      <tr><td><code>python-docx</code></td><td>>=1</td><td>DOCX extraction</td></tr>
+      <tr><td><code>beautifulsoup4</code></td><td>>=4</td><td>HTML tag-stripping in text extractor</td></tr>
+      <tr><td><code>chardet</code></td><td>>=5</td><td>Encoding detection</td></tr>
+      <tr><td><code>ollama</code></td><td>>=0.3</td><td>Local LLM inference client</td></tr>
+      <tr><td><code>numpy</code></td><td>>=1.26</td><td>Numerical operations for embeddings</td></tr>
+      <tr><td><code>scipy</code></td><td>>=1.13</td><td>Cosine similarity</td></tr>
+      <tr><td><code>watchdog</code></td><td>>=4</td><td>Filesystem event monitoring</td></tr>
+      <tr><td><code>apscheduler</code></td><td>>=3.10</td><td>Cron-based job scheduling</td></tr>
+      <tr><td><code>packaging</code></td><td>>=26.2</td><td>Metadata-Version 2.4 wheel support</td></tr>
+    </table>
+
+    <h3>Platform Targets</h3>
+    <div class="card-grid">
+      <div class="stat-card" style="border-color:var(--blue)">
+        <div class="stat-label">Primary Dev</div>
+        <div class="stat-value">Ubuntu 24.04</div>
+        <p style="font-size:12px;color:var(--text-muted);margin-top:4px">x86_64 · 62GB RAM · 20 cores</p>
+      </div>
+      <div class="stat-card" style="border-color:var(--orange)">
+        <div class="stat-label">Deployment Target</div>
+        <div class="stat-value">Raspberry Pi 5</div>
+        <p style="font-size:12px;color:var(--text-muted);margin-top:4px">8GB RAM · NEXUS platform node</p>
+      </div>
+      <div class="stat-card" style="border-color:#27ae60">
+        <div class="stat-label">Python</div>
+        <div class="stat-value">3.11 / 3.12 / 3.13</div>
+        <p style="font-size:12px;color:var(--text-muted);margin-top:4px">All tested and supported</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- FILE FORMATS -->
+  <section class="doc-section" id="formats">
+    <h2>File Formats</h2>
+
+    <h3>Supported (extraction implemented)</h3>
+    <table>
+      <tr><th>Extractor</th><th>Extensions</th></tr>
+      <tr>
+        <td><code>extractor/text.py</code></td>
+        <td style="font-family:'IBM Plex Mono',monospace;font-size:12px">.txt .md .rst .log .csv .json .xml .yaml .yml .py .pyw .js .ts .jsx .tsx .html .htm .css .scss .less .sh .bash .zsh .fish .ps1 .bat .cmd .c .cpp .h .hpp .rs .go .java .kt .swift .rb .php .lua .r .sql .toml .ini .cfg .conf .env</td>
+      </tr>
+      <tr><td><code>extractor/pdf.py</code></td><td style="font-family:'IBM Plex Mono',monospace;font-size:12px">.pdf</td></tr>
+      <tr><td><code>extractor/docx.py</code></td><td style="font-family:'IBM Plex Mono',monospace;font-size:12px">.docx</td></tr>
+    </table>
+
+    <h3>Dependency installed but extractor not yet implemented</h3>
+    <table>
+      <tr><th>Format</th><th>Dependency</th><th>Status</th></tr>
+      <tr><td>.xlsx / .xls</td><td>openpyxl</td><td><span class="badge badge-orange">Gap — extractor planned</span></td></tr>
+      <tr><td>.png .jpg .jpeg .bmp .tiff .webp</td><td>Pillow + pytesseract</td><td><span class="badge badge-orange">Gap — OCR extractor planned</span></td></tr>
+    </table>
+  </section>
+
+  <!-- GAP ANALYSIS -->
+  <section class="doc-section" id="gaps">
+    <h2>Gap Analysis</h2>
+    <p>Discrepancies between documented design and current codebase, as of v0.1.7.</p>
+
+    <h3>Code Gaps</h3>
+
+    <div class="gap-item medium">
+      <div class="gap-title">extractor/xlsx.py — Not implemented <span class="badge badge-orange" style="margin-left:8px">Medium</span></div>
+      <div class="gap-desc"><code>openpyxl</code> is installed but no XLSX extractor module exists. Spreadsheet files produce no text snippet; classification falls back to filename only.</div>
+    </div>
+
+    <div class="gap-item medium">
+      <div class="gap-title">extractor/image.py — Not implemented (OCR) <span class="badge badge-orange" style="margin-left:8px">Medium</span></div>
+      <div class="gap-desc"><code>pytesseract</code> and <code>Pillow</code> are installed but no OCR extractor exists. Image files are scanned and hashed but produce no text snippet.</div>
+    </div>
+
+    <div class="gap-item low">
+      <div class="gap-title">actions/logger.py — Does not exist <span class="badge badge-gray" style="margin-left:8px">Low</span></div>
+      <div class="gap-desc">Previously documented as a standalone module. Action logging is implemented through <code>SessionDB.log_action()</code> in <code>db.py</code>. Functional workaround in place. Documentation corrected.</div>
+    </div>
+
+    <div class="gap-item low">
+      <div class="gap-title">actions/prune.py — Not exposed in CLI <span class="badge badge-gray" style="margin-left:8px">Low</span></div>
+      <div class="gap-desc">Empty-directory removal runs automatically after <code>organize</code> but there is no standalone <code>fileforge prune</code> command.</div>
+    </div>
+
+    <div class="gap-item low">
+      <div class="gap-title">RTF / EPUB extractors — Planned <span class="badge badge-gray" style="margin-left:8px">Low</span></div>
+      <div class="gap-desc">Mentioned in CHANGELOG as upcoming. No dependency installed yet. Use <code>striprtf</code> for RTF, <code>ebooklib</code> for EPUB.</div>
+    </div>
+
+    <h3>Documentation Fixes Applied (v0.1.7)</h3>
+
+    <div class="gap-item fixed">
+      <div class="gap-title">All doc version references updated to v0.1.7 <span class="badge badge-green" style="margin-left:8px">Fixed</span></div>
+    </div>
+    <div class="gap-item fixed">
+      <div class="gap-title">Architecture diagram corrected: removed xlsx.py / html.py / image.py <span class="badge badge-green" style="margin-left:8px">Fixed</span></div>
+    </div>
+    <div class="gap-item fixed">
+      <div class="gap-title">api.md: removed actions/logger.py section; added REST API docs <span class="badge badge-green" style="margin-left:8px">Fixed</span></div>
+    </div>
+    <div class="gap-item fixed">
+      <div class="gap-title">setup.md: corrected <code>fileforge[ui]</code> → <code>fileforge[web]</code>; added server command <span class="badge badge-green" style="margin-left:8px">Fixed</span></div>
+    </div>
+    <div class="gap-item fixed">
+      <div class="gap-title">Removed stale planning docs (docs/superpowers/plans/) <span class="badge badge-green" style="margin-left:8px">Fixed</span></div>
+    </div>
+  </section>
+
+  <!-- ROADMAP -->
+  <section class="doc-section" id="roadmap">
+    <h2>Roadmap</h2>
+    <table>
+      <tr><th>Phase</th><th>Status</th><th>Description</th></tr>
+      <tr>
+        <td>Phase 1–4</td>
+        <td><span class="badge badge-green">Complete</span></td>
+        <td>All core features shipped. See CHANGELOG.md for full history.</td>
+      </tr>
+      <tr>
+        <td>Extractor: xlsx</td>
+        <td><span class="badge badge-orange">Planned</span></td>
+        <td>Implement extractor/xlsx.py using openpyxl</td>
+      </tr>
+      <tr>
+        <td>Extractor: OCR</td>
+        <td><span class="badge badge-orange">Planned</span></td>
+        <td>Implement extractor/image.py using pytesseract</td>
+      </tr>
+      <tr>
+        <td>Extractor: RTF / EPUB</td>
+        <td><span class="badge badge-orange">Planned</span></td>
+        <td>Add striprtf and ebooklib extractors</td>
+      </tr>
+      <tr>
+        <td>Phase 5 — React PWA</td>
+        <td><span class="badge badge-gray">Future</span></td>
+        <td>Replace vanilla JS SPA with React PWA + service worker</td>
+      </tr>
+      <tr>
+        <td>Phase 6 — Sync</td>
+        <td><span class="badge badge-gray">Future</span></td>
+        <td>Cross-device sync for NEXUS multi-Pi nodes</td>
+      </tr>
+    </table>
+
+    <div class="callout callout-warn" style="margin-top:24px">
+      <span>⚠</span>
+      <div>FileForge is currently in <strong>Alpha (v0.1.x)</strong>. The Python API and SQLite schema may change between minor versions until v1.0. The REST API endpoints are stable as of v0.1.7.</div>
+    </div>
+  </section>
+
+  <footer style="border-top:1px solid var(--border);padding-top:24px;margin-top:40px;font-size:12px;color:var(--text-muted)">
+    FileForge v0.1.7 &mdash; MIT License &mdash; CoreConduit Consulting Services &mdash; Generated 2026-05-19
+  </footer>
+
+</div>
+</main>
+
+<script>
+  // Active nav link on scroll
+  const sections = document.querySelectorAll('.doc-section[id]');
+  const navLinks = document.querySelectorAll('nav a[href^="#"]');
+
+  function updateNav() {
+    let current = '';
+    sections.forEach(s => {
+      if (window.scrollY + 80 >= s.offsetTop) current = s.id;
+    });
+    navLinks.forEach(a => {
+      a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+    });
+  }
+
+  window.addEventListener('scroll', updateNav, { passive: true });
+  updateNav();
+</script>
+</body>
+</html>
