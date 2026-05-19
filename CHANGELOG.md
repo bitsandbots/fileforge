@@ -82,6 +82,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - `scripts/install.sh`: systemd installer lookup now falls back to pip-installed package location when the dev-tree path is absent
 
+## [0.1.7] — 2026-05-19
+
+### Fixed
+- `api/server.py`: `POST /api/scan` rejected paths containing `~` (e.g. `~/Documents`) with HTTP 400; now calls `.expanduser()` before validation and subprocess invocation
+- `frontend/index.html`: category filter dropdown compared raw LLM category paths (e.g. `"Documents/Reports"`) against hardcoded keys (`"document"`) — always false, hiding all rows; added `normalizeCategoryKey()` to map free-text paths to filter keys
+- `frontend/index.html`: category colour dot never rendered because `getCategoryColor()` was a literal string inside a CSS `style` attribute; now evaluated in JS before HTML injection
+- `frontend/index.html`: switching tabs did not sync the status `<select>` dropdown, leaving it showing a stale value
+
+### Added
+- `frontend/index.html`: "Quick scan (skip AI classification)" checkbox (checked by default) so web UI scans complete in seconds rather than hours on large directories
+- `db.py`: `complete_session()` sets `completed_at` timestamp on scan/organise/dupes finish; included in `list_sessions()` response
+
+### Changed
+- `api/server.py`: `POST /api/scan` is now non-blocking — returns immediately with a `job_id`; clients poll `GET /api/job/{job_id}` for status
+- `api/server.py`: added `GET /api/browse?path=` directory browser endpoint for the path-picker widget
+- `packaging`: upgraded `packaging` library to 26.2 to support Metadata-Version 2.4 (`License-File` field) in twine checks
+
 ## [Unreleased]
 
 ### Planned
