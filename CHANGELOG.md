@@ -99,10 +99,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `api/server.py`: added `GET /api/browse?path=` directory browser endpoint for the path-picker widget
 - `packaging`: upgraded `packaging` library to 26.2 to support Metadata-Version 2.4 (`License-File` field) in twine checks
 
+## [0.1.8] — 2026-05-19
+
+### Fixed
+- `api/server.py` + `db.py`: `GET /api/session/{id}` returned all records with no limit; sessions with millions of files sent a multi-GB JSON payload that froze the browser. Endpoint now accepts `?limit=500&offset=0` query params (default: first 500). Response includes `total`, `limit`, `offset` fields for pagination awareness.
+- `frontend/index.html`: page load fetches only first 500 records on large sessions; shows warning toast when session is truncated (e.g. "Showing first 500 of 2,417,064 files"). `stat-total` counter reflects session total, not truncated slice.
+
+### Added
+- `db.get_session_file_count(session_id)` — COUNT query returning total records without fetching rows
+- `db.get_session_records()` now accepts `limit` (default: 500) and `offset` (default: 0) parameters
+- Tests for `get_session_records` pagination and `get_session_file_count` in `tests/test_db.py`
+
+### Documentation
+- Comprehensive docs overhaul: all files updated to v0.1.7 (were stuck at 0.1.0)
+- `docs/Blueprint_Overview.html`: branded single-page HTML reference (open in browser)
+- `docs/gap-analysis.md`: tracks code vs. documentation discrepancies and planned features
+- `docs/api.md`: removed fictional `actions/logger.py` section; added complete REST API reference
+- `docs/architecture.md`: corrected module table (removed `xlsx.py`, `html.py`, `image.py` that don't exist); added web server diagram and async scan data flow
+- `docs/tech-stack.md`: added `fastapi`, `uvicorn`, `Jinja2`, `packaging` entries; clarified which formats have extractors vs. installed dependencies only
+- `docs/setup.md`: corrected `fileforge[ui]` → `fileforge[web]`; added `fileforge server` command reference
+- Removed stale `docs/superpowers/plans/` planning docs (phases 2–4 are implemented)
+- `src/fileforge/api/__init__.py`: added missing package init file
+- `scripts/install.sh`: added `Blueprint_Overview.html` and `gap-analysis.md` to docs output
+
 ## [Unreleased]
 
 ### Planned
 - Phase 5: React PWA GUI
 - Phase 6: Cross-device sync
-- Additional extractor formats (RTF, EPUB, etc.)
+- Additional extractor formats (RTF, EPUB, xlsx, OCR)
 - Custom classification models via config

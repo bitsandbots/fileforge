@@ -95,3 +95,52 @@ def test_list_records_for_session(tmp_dir: Path) -> None:
         )
     records = list(db.list_records(session_id))
     assert len(records) == 3
+
+
+def _insert_n_records(db: SessionDB, session_id: int, n: int, tmp_dir: Path) -> None:
+    for i in range(n):
+        db.insert_record(
+            session_id,
+            FileRecord(
+                path=tmp_dir / f"HARNESS_pg{i}.txt",
+                name=f"HARNESS_pg{i}.txt",
+                extension=".txt",
+                size_bytes=i,
+                modified_at=datetime(2024, 1, 1),
+                created_at=datetime(2024, 1, 1),
+            ),
+        )
+
+
+def test_get_session_records_default_limit(tmp_dir: Path) -> None:
+    """get_session_records returns at most 500 records by default."""
+    db = SessionDB(tmp_dir / "test.db")
+    session_id = db.create_session(scan_dirs=[tmp_dir])
+    _insert_n_records(db, session_id, 10, tmp_dir)
+    records = db.get_session_records(session_id)
+    assert len(records) == 10
+
+
+def test_get_session_records_limit_and_offset(tmp_dir: Path) -> None:
+    """get_session_records respects limit and offset."""
+    db = SessionDB(tmp_dir / "test.db")
+    session_id = db.create_session(scan_dirs=[tmp_dir])
+    _insert_n_records(db, session_id, 10, tmp_dir)
+
+    page1 = db.get_session_records(session_id, limit=4, offset=0)
+    page2 = db.get_session_records(session_id, limit=4, offset=4)
+    page3 = db.get_session_records(session_id, limit=4, offset=8)
+
+    assert len(page1) == 4
+    assert len(page2) == 4
+    assert len(page3) == 2
+    ids = [r.id for r in page1 + page2 + page3]
+    assert len(ids) == len(set(ids)), "pages must not overlap"
+
+
+def test_get_session_file_count(tmp_dir: Path) -> None:
+    """get_session_file_count returns total without fetching rows."""
+    db = SessionDB(tmp_dir / "test.db")
+    session_id = db.create_session(scan_dirs=[tmp_dir])
+    _insert_n_records(db, session_id, 7, tmp_dir)
+    assert db.get_session_file_count(session_id) == 7
