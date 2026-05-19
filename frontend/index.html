@@ -698,26 +698,33 @@
             };
         }
 
-        function _applyRecords(records) {
+        var _sessionTotal = 0;
+
+        function _applyRecords(records, total) {
             files = (records || []).map(_recordFromApi);
+            _sessionTotal = total || files.length;
             updateStats();
             renderTable();
         }
 
         async function loadSession(sessionId) {
             try {
-                var r = await fetch('/api/session/' + sessionId);
+                var r = await fetch('/api/session/' + sessionId + '?limit=500&offset=0');
                 if (!r.ok) { showToast('Could not load session results', 'error'); return; }
                 var data = await r.json();
-                _applyRecords(data.records);
-                showToast('Scan complete: ' + files.length + ' files found', 'success');
+                _applyRecords(data.records, data.total);
+                var msg = 'Scan complete: ' + (data.total || files.length).toLocaleString() + ' files found';
+                if (data.total > files.length) {
+                    msg += ' — showing first ' + files.length.toLocaleString();
+                }
+                showToast(msg, 'success');
             } catch (e) {
                 showToast('Failed to load results: ' + e.message, 'error');
             }
         }
 
         function updateStats() {
-            document.getElementById('stat-total').textContent = files.length;
+            document.getElementById('stat-total').textContent = (_sessionTotal || files.length).toLocaleString();
             var totalSize = files.reduce(function(sum, f) { return sum + f.size_bytes; }, 0);
             document.getElementById('stat-size').textContent = formatBytes(totalSize);
             var duplicates = files.filter(function(f) { return f.is_duplicate; });
@@ -1074,7 +1081,7 @@
             simulateScan(filesList);
         });
 
-        // On page load, try to load the most recent session from the server
+        // On page load, load the most recent session (first 500 records)
         (async function initLatestSession() {
             try {
                 var r = await fetch('/api/sessions');
@@ -1082,10 +1089,17 @@
                 var data = await r.json();
                 if (data.sessions && data.sessions.length > 0) {
                     var latest = data.sessions[0];
-                    var sr = await fetch('/api/session/' + latest.id);
+                    var sr = await fetch('/api/session/' + latest.id + '?limit=500&offset=0');
                     if (sr.ok) {
                         var sdata = await sr.json();
-                        _applyRecords(sdata.records);
+                        _applyRecords(sdata.records, sdata.total);
+                        if (sdata.total > (sdata.records || []).length) {
+                            showToast(
+                                'Large session: showing first 500 of ' +
+                                sdata.total.toLocaleString() + ' files',
+                                'warning'
+                            );
+                        }
                     }
                 }
             } catch (_) {

@@ -337,19 +337,39 @@ class SessionDB:
             for row in cur
         ]
 
-    def get_session_records(self, session_id: int) -> list[FileRecord]:
-        """Get all records for a specific session.
+    def get_session_records(
+        self,
+        session_id: int,
+        limit: int = 500,
+        offset: int = 0,
+    ) -> list[FileRecord]:
+        """Get records for a specific session with pagination.
 
         Args:
             session_id: The session ID to query.
+            limit: Maximum records to return. 0 = all (use with caution on large sessions).
+            offset: Number of records to skip.
 
         Returns:
             List of FileRecords for the session.
         """
-        cur = self._conn.execute(
-            "SELECT * FROM file_records WHERE session_id = ?", (session_id,)
-        )
+        if limit:
+            cur = self._conn.execute(
+                "SELECT * FROM file_records WHERE session_id = ? LIMIT ? OFFSET ?",
+                (session_id, limit, offset),
+            )
+        else:
+            cur = self._conn.execute(
+                "SELECT * FROM file_records WHERE session_id = ?", (session_id,)
+            )
         return [self._row_to_record(row) for row in cur]
+
+    def get_session_file_count(self, session_id: int) -> int:
+        """Return total number of file records for a session."""
+        row = self._conn.execute(
+            "SELECT COUNT(*) FROM file_records WHERE session_id = ?", (session_id,)
+        ).fetchone()
+        return row[0] if row else 0
 
     def log_action(
         self,

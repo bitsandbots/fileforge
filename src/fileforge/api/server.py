@@ -304,7 +304,11 @@ async def list_sessions() -> dict[str, list]:
 
 
 @app.get("/api/session/{session_id}")
-async def get_session(session_id: int) -> dict:
+async def get_session(
+    session_id: int,
+    limit: int = 500,
+    offset: int = 0,
+) -> dict:
     try:
         from fileforge.db import SessionDB
 
@@ -315,11 +319,18 @@ async def get_session(session_id: int) -> dict:
 
         db = SessionDB(db_path)
         try:
-            records = db.get_session_records(session_id)
+            total = db.get_session_file_count(session_id)
+            records = db.get_session_records(session_id, limit=limit, offset=offset)
         finally:
             db.close()
 
-        return {"session_id": session_id, "records": [r.model_dump() for r in records]}
+        return {
+            "session_id": session_id,
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+            "records": [r.model_dump() for r in records],
+        }
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
