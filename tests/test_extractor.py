@@ -173,3 +173,133 @@ def test_extract_pdf_corrupt_returns_none(tmp_dir: Path) -> None:
     f.write_bytes(b"this is not a real pdf file")
     snippet = extract_snippet(f, max_chars=2000)
     assert snippet is None
+
+
+# ── Image / OCR ───────────────────────────────────────────────────────────────
+
+
+def test_image_extensions_registered() -> None:
+    """Image extensions are registered in the dispatcher."""
+    from fileforge.extractor import _DISPATCH
+
+    for ext in (".png", ".jpg", ".jpeg", ".bmp", ".tiff", ".webp", ".gif"):
+        assert ext in _DISPATCH, f"{ext} not registered"
+
+
+def test_image_extract_without_pytesseract_returns_none(tmp_dir: Path) -> None:
+    """extract() returns None gracefully when pytesseract is not installed."""
+    from fileforge.extractor import image as _image_mod
+
+    # If pytesseract genuinely isn't available, _AVAILABLE is False and
+    # extract() returns None without touching the file.
+    if _image_mod._AVAILABLE:
+        # pytesseract IS installed in this environment — skip the unavailability test
+        return
+
+    f = tmp_dir / "HARNESS_scan.png"
+    # Minimal 1×1 white PNG (valid file, but OCR won't run)
+    from PIL import Image as PILImage
+
+    PILImage.new("RGB", (1, 1), color=255).save(f)
+
+    snippet = _image_mod.extract(f, max_chars=2000)
+    assert snippet is None
+
+
+def test_image_extract_via_mock(tmp_dir: Path) -> None:
+    """extract() returns OCR text when pytesseract is available (mocked)."""
+    from unittest.mock import MagicMock, patch
+
+    from PIL import Image as PILImage
+
+    f = tmp_dir / "HARNESS_ocr.png"
+    PILImage.new("RGB", (100, 30), color=255).save(f)
+
+    mock_pytesseract = MagicMock()
+    mock_pytesseract.TesseractNotFoundError = Exception
+    mock_pytesseract.image_to_string.return_value = "Invoice total: $1,234.56"
+
+    with (
+        patch("fileforge.extractor.image._AVAILABLE", True),
+        patch("fileforge.extractor.image.pytesseract", mock_pytesseract, create=True),
+    ):
+        from fileforge.extractor import image as _image_mod
+
+        snippet = _image_mod.extract(f, max_chars=2000)
+
+    assert snippet == "Invoice total: $1,234.56"
+
+
+def test_image_extract_via_mock_truncates(tmp_dir: Path) -> None:
+    """extract() truncates OCR output at max_chars."""
+    from unittest.mock import MagicMock, patch
+
+    from PIL import Image as PILImage
+
+    f = tmp_dir / "HARNESS_long_ocr.png"
+    PILImage.new("RGB", (100, 30), color=255).save(f)
+
+    mock_pytesseract = MagicMock()
+    mock_pytesseract.TesseractNotFoundError = Exception
+    mock_pytesseract.image_to_string.return_value = "A" * 5000
+
+    with (
+        patch("fileforge.extractor.image._AVAILABLE", True),
+        patch("fileforge.extractor.image.pytesseract", mock_pytesseract, create=True),
+    ):
+        from fileforge.extractor import image as _image_mod
+
+        snippet = _image_mod.extract(f, max_chars=100)
+
+    assert len(snippet) == 100
+
+
+def test_image_extract_empty_ocr_returns_none(tmp_dir: Path) -> None:
+    """extract() returns None when OCR produces only whitespace."""
+    from unittest.mock import MagicMock, patch
+
+    from PIL import Image as PILImage
+
+    f = tmp_dir / "HARNESS_blank_img.png"
+    PILImage.new("RGB", (100, 30), color=255).save(f)
+
+    mock_pytesseract = MagicMock()
+    mock_pytesseract.TesseractNotFoundError = Exception
+    mock_pytesseract.image_to_string.return_value = "   \n\n\t  "
+
+    with (
+        patch("fileforge.extractor.image._AVAILABLE", True),
+        patch("fileforge.extractor.image.pytesseract", mock_pytesseract, create=True),
+    ):
+        from fileforge.extractor import image as _image_mod
+
+        snippet = _image_mod.extract(f, max_chars=2000)
+
+    assert snippet is None
+
+
+def test_image_extract_tesseract_not_found_returns_none(tmp_dir: Path) -> None:
+    """extract() returns None when the Tesseract binary is missing."""
+    from unittest.mock import MagicMock, patch
+
+    from PIL import Image as PILImage
+
+    f = tmp_dir / "HARNESS_notesseract.png"
+    PILImage.new("RGB", (100, 30), color=255).save(f)
+
+    class _TesseractNotFoundError(Exception):
+        pass
+
+    mock_pytesseract = MagicMock()
+    mock_pytesseract.TesseractNotFoundError = _TesseractNotFoundError
+    mock_pytesseract.image_to_string.side_effect = _TesseractNotFoundError("not found")
+
+    with (
+        patch("fileforge.extractor.image._AVAILABLE", True),
+        patch("fileforge.extractor.image.pytesseract", mock_pytesseract, create=True),
+    ):
+        from fileforge.extractor import image as _image_mod
+
+        snippet = _image_mod.extract(f, max_chars=2000)
+
+    assert snippet is None

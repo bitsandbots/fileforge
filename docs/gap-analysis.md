@@ -15,13 +15,10 @@ This document records discrepancies between the documented design and the curren
 
 ---
 
-### 2. `extractor/image.py` — Missing (OCR)
+### 2. `extractor/image.py` — ~~Missing~~ IMPLEMENTED (v0.1.9)
 
-**Impact:** Medium  
-**Dependency installed:** `pytesseract >= 0.3` (optional `[ocr]` extra), `Pillow >= 10`  
-**Current behavior:** Image files (`.png`, `.jpg`, `.jpeg`, etc.) produce no text snippet. They are scanned and hashed only.  
-**Documented as:** Optional OCR capability in `tech-stack.md`.  
-**Fix:** Implement `extractor/image.py` using `pytesseract.image_to_string()`, guarded by a try-import so non-OCR installs degrade gracefully.
+**Status:** CLOSED  
+**Implemented:** `src/fileforge/extractor/image.py` — PIL and pytesseract imported separately so Pillow-only installs still work; converts image to grayscale before OCR; degrades to `None` when pytesseract or Tesseract binary unavailable. Registered for 8 extensions (`.png`, `.jpg`, `.jpeg`, `.bmp`, `.tiff`, `.tif`, `.webp`, `.gif`) in `extractor/__init__.py`. 6 tests added in `tests/test_extractor.py`.
 
 ---
 
