@@ -102,12 +102,18 @@ def _resolve_fileforge_bin() -> list[str]:
       1. ``sys.argv[0]`` resolved (works when launched via ``fileforge server``).
       2. ``shutil.which('fileforge')`` (works when fileforge is on ``PATH``).
       3. ``sys.executable -m fileforge`` (works in editable installs).
+
+    ``__main__.py`` is not directly executable — always prefix with the
+    interpreter so subprocess can launch it.
     """
     try:
         candidate = Path(sys.argv[0]).resolve()
-        if candidate.name == "fileforge" or candidate.name == "__main__.py":
+        if candidate.name == "fileforge":
             if candidate.exists():
                 return [str(candidate)]
+        if candidate.name == "__main__.py":
+            if candidate.exists():
+                return [sys.executable, str(candidate)]
     except Exception:
         pass
 
