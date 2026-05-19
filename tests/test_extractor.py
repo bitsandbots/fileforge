@@ -72,6 +72,101 @@ def test_extract_whitespace_only_returns_none(tmp_dir: Path) -> None:
     assert snippet is None
 
 
+# ── XLSX ──────────────────────────────────────────────────────────────────────
+
+
+def _make_xlsx(path: Path, sheets: dict[str, list[list]]) -> None:
+    """Helper: write an xlsx workbook with the given sheet data."""
+    import openpyxl
+
+    wb = openpyxl.Workbook()
+    first = True
+    for sheet_name, rows in sheets.items():
+        ws = wb.active if first else wb.create_sheet(sheet_name)
+        if first:
+            ws.title = sheet_name
+            first = False
+        for row in rows:
+            ws.append(row)
+    wb.save(path)
+
+
+def test_extract_xlsx_basic(tmp_dir: Path) -> None:
+    """XLSX file with cell data returns text snippet."""
+    f = tmp_dir / "HARNESS_budget.xlsx"
+    _make_xlsx(
+        f, {"Budget": [["Category", "Amount"], ["Salaries", 50000], ["Supplies", 1200]]}
+    )
+    snippet = extract_snippet(f, max_chars=2000)
+    assert snippet is not None
+    assert "Category" in snippet
+    assert "Salaries" in snippet
+    assert "50000" in snippet
+
+
+def test_extract_xlsx_sheet_header(tmp_dir: Path) -> None:
+    """Sheet name appears as a section header in the snippet."""
+    f = tmp_dir / "HARNESS_report.xlsx"
+    _make_xlsx(f, {"Q1 Report": [["Revenue", "900000"]]})
+    snippet = extract_snippet(f, max_chars=2000)
+    assert "[Q1 Report]" in snippet
+
+
+def test_extract_xlsx_multi_sheet(tmp_dir: Path) -> None:
+    """Multiple sheets are all included up to max_chars."""
+    f = tmp_dir / "HARNESS_multi.xlsx"
+    _make_xlsx(
+        f,
+        {
+            "Sheet1": [["Alpha", "Beta"]],
+            "Sheet2": [["Gamma", "Delta"]],
+        },
+    )
+    snippet = extract_snippet(f, max_chars=2000)
+    assert "Alpha" in snippet
+    assert "Gamma" in snippet
+
+
+def test_extract_xlsx_respects_max_chars(tmp_dir: Path) -> None:
+    """Snippet is capped at max_chars for large workbooks."""
+    f = tmp_dir / "HARNESS_large.xlsx"
+    _make_xlsx(f, {"Data": [["x" * 100] for _ in range(50)]})
+    snippet = extract_snippet(f, max_chars=200)
+    assert snippet is not None
+    assert len(snippet) <= 220  # slight slack for sheet header
+
+
+def test_extract_xlsx_empty_workbook_returns_none(tmp_dir: Path) -> None:
+    """An xlsx with no cell values returns None."""
+    import openpyxl
+
+    f = tmp_dir / "HARNESS_empty.xlsx"
+    wb = openpyxl.Workbook()
+    wb.save(f)
+    snippet = extract_snippet(f, max_chars=2000)
+    assert snippet is None
+
+
+def test_extract_xlsx_skips_empty_cells(tmp_dir: Path) -> None:
+    """Empty cells in rows are not emitted as blank separators."""
+    f = tmp_dir / "HARNESS_sparse.xlsx"
+    _make_xlsx(f, {"Sparse": [["Hello", None, None, "World"]]})
+    snippet = extract_snippet(f, max_chars=2000)
+    assert snippet is not None
+    assert "Hello" in snippet
+    assert "World" in snippet
+    # None values should not appear literally
+    assert "None" not in snippet
+
+
+def test_extract_xlsx_corrupt_returns_none(tmp_dir: Path) -> None:
+    """Corrupt/non-xlsx file with .xlsx extension returns None gracefully."""
+    f = tmp_dir / "HARNESS_corrupt.xlsx"
+    f.write_bytes(b"not a real xlsx file")
+    snippet = extract_snippet(f, max_chars=2000)
+    assert snippet is None
+
+
 def test_extract_pdf_corrupt_returns_none(tmp_dir: Path) -> None:
     """PDF extraction on a corrupt (non-PDF) file returns None gracefully."""
     f = tmp_dir / "HARNESS_corrupt.pdf"

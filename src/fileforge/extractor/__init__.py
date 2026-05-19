@@ -8,6 +8,7 @@ from pathlib import Path
 from fileforge.extractor import docx as _docx
 from fileforge.extractor import pdf as _pdf
 from fileforge.extractor import text as _text
+from fileforge.extractor import xlsx as _xlsx
 
 _log = logging.getLogger(__name__)
 
@@ -19,6 +20,8 @@ for ext in _text.TEXT_EXTENSIONS:
 
 _DISPATCH[".docx"] = _docx
 _DISPATCH[".pdf"] = _pdf
+_DISPATCH[".xlsx"] = _xlsx
+_DISPATCH[".xlsm"] = _xlsx
 
 
 def extract_snippet(path: Path, max_chars: int = 2000) -> str | None:

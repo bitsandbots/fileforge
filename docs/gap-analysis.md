@@ -8,13 +8,10 @@ This document records discrepancies between the documented design and the curren
 
 ## Code Gaps (Documented but Not Implemented)
 
-### 1. `extractor/xlsx.py` — Missing
+### 1. `extractor/xlsx.py` — ~~Missing~~ IMPLEMENTED (v0.1.9)
 
-**Impact:** Medium  
-**Dependency installed:** `openpyxl >= 3`  
-**Current behavior:** `.xlsx` and `.xls` files are scanned and hashed but produce no text snippet. Classification falls back to filename-based inference.  
-**Documented as:** Supported in `tech-stack.md` and old `architecture.md`.  
-**Fix:** Implement `extractor/xlsx.py` using `openpyxl.load_workbook()` to extract cell text from the first N sheets.
+**Status:** CLOSED  
+**Implemented:** `src/fileforge/extractor/xlsx.py` — reads sheets in order using `openpyxl.load_workbook(read_only=True, data_only=True)`, emits `[SheetName]` headers, joins cell values with ` | `, respects `max_chars`. Registered for `.xlsx` and `.xlsm` in `extractor/__init__.py`. 7 tests added in `tests/test_extractor.py`.
 
 ---
 

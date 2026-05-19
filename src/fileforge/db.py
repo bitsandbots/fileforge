@@ -347,7 +347,7 @@ class SessionDB:
 
         Args:
             session_id: The session ID to query.
-            limit: Maximum records to return. 0 = all (use with caution on large sessions).
+            limit: Maximum records to return. 0 = all (caution on large sessions).
             offset: Number of records to skip.
 
         Returns:
