@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import ollama
+import openai
 
 from fileforge.ai.classifier import classify_file, parse_category
 
@@ -26,38 +26,43 @@ def test_parse_category_empty_falls_back() -> None:
     assert parse_category("   ") == "Uncategorized"
 
 
-def test_classify_file_calls_ollama(tmp_dir: Path) -> None:
-    """classify_file makes one Ollama chat call and returns a category."""
+def test_classify_file_calls_llama_server(tmp_dir: Path) -> None:
+    """classify_file makes one chat completions call and returns a category."""
     f = tmp_dir / "HARNESS_proposal.txt"
     f.write_text("Consulting proposal for a nonprofit.")
 
+    mock_choice = MagicMock()
+    mock_choice.message.content = "Work/Consulting/Proposals"
     mock_response = MagicMock()
-    mock_response.message.content = "Work/Consulting/Proposals"
+    mock_response.choices = [mock_choice]
 
-    with patch("fileforge.ai.classifier.ollama.chat", return_value=mock_response):
+    with patch("fileforge.ai.classifier.openai.OpenAI") as mock_client_cls:
+        mock_client = mock_client_cls.return_value
+        mock_client.chat.completions.create.return_value = mock_response
         result = classify_file(
             path=f,
             snippet="Consulting proposal for a nonprofit.",
-            model="qwen3:4b",
+            model="qwen3-coder",
             hints="I am a technology consultant.",
         )
 
     assert result == "Work/Consulting/Proposals"
 
 
-def test_classify_file_handles_ollama_error(tmp_dir: Path) -> None:
-    """OllamaResponseError returns 'Uncategorized' gracefully."""
+def test_classify_file_handles_api_error(tmp_dir: Path) -> None:
+    """APIError returns 'Uncategorized' gracefully."""
     f = tmp_dir / "HARNESS_doc.txt"
     f.write_text("some content")
 
-    with patch(
-        "fileforge.ai.classifier.ollama.chat",
-        side_effect=ollama.ResponseError("model not found"),
-    ):
+    with patch("fileforge.ai.classifier.openai.OpenAI") as mock_client_cls:
+        mock_client = mock_client_cls.return_value
+        mock_client.chat.completions.create.side_effect = openai.APIConnectionError(
+            request=MagicMock()
+        )
         result = classify_file(
             path=f,
             snippet="some content",
-            model="qwen3:4b",
+            model="qwen3-coder",
             hints="",
         )
 
@@ -65,18 +70,19 @@ def test_classify_file_handles_ollama_error(tmp_dir: Path) -> None:
 
 
 def test_classify_file_handles_connection_error(tmp_dir: Path) -> None:
-    """RequestError (Ollama not running) returns 'Uncategorized' gracefully."""
+    """ConnectionError (server not running) returns 'Uncategorized' gracefully."""
     f = tmp_dir / "HARNESS_doc2.txt"
     f.write_text("some content")
 
-    with patch(
-        "fileforge.ai.classifier.ollama.chat",
-        side_effect=ollama.RequestError("connection refused"),
-    ):
+    with patch("fileforge.ai.classifier.openai.OpenAI") as mock_client_cls:
+        mock_client = mock_client_cls.return_value
+        mock_client.chat.completions.create.side_effect = ConnectionError(
+            "connection refused"
+        )
         result = classify_file(
             path=f,
             snippet="some content",
-            model="qwen3:4b",
+            model="qwen3-coder",
             hints="",
         )
 

@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
+
+import openai
 
 from fileforge.analysis.embeddings import find_near_duplicates, generate_embedding
 from fileforge.models import FileRecord
@@ -26,25 +28,32 @@ def _make_record(name: str, embedding: list[float] | None = None) -> FileRecord:
 def test_generate_embedding_returns_vector() -> None:
     """generate_embedding returns a list of floats (mocked)."""
     mock_embedding = [0.1, 0.2, 0.3, 0.4, 0.5]
-    with patch("fileforge.analysis.embeddings.ollama.embeddings") as mock_emb:
-        mock_emb.return_value = {"embedding": mock_embedding}
-        result = generate_embedding("test text", model="nomic-embed-text")
+    mock_data = MagicMock()
+    mock_data.embedding = mock_embedding
+    mock_response = MagicMock()
+    mock_response.data = [mock_data]
+
+    with patch("fileforge.analysis.embeddings.openai.OpenAI") as mock_client_cls:
+        mock_client = mock_client_cls.return_value
+        mock_client.embeddings.create.return_value = mock_response
+        result = generate_embedding("test text", model="mxbai-embed-large-v1-F16")
         assert result == mock_embedding
-        mock_emb.assert_called_once()
+        mock_client.embeddings.create.assert_called_once()
 
 
 def test_generate_embedding_empty_text_returns_empty() -> None:
-    """generate_embedding returns [] for blank input without calling Ollama."""
-    with patch("fileforge.analysis.embeddings.ollama.embeddings") as mock_emb:
+    """generate_embedding returns [] for blank input without calling llama-server."""
+    with patch("fileforge.analysis.embeddings.openai.OpenAI") as mock_client_cls:
         assert generate_embedding("") == []
         assert generate_embedding("   ") == []
-        mock_emb.assert_not_called()
+        mock_client_cls.assert_not_called()
 
 
 def test_generate_embedding_graceful_on_connection_error() -> None:
-    """generate_embedding returns [] when Ollama is unreachable."""
-    with patch("fileforge.analysis.embeddings.ollama.embeddings") as mock_emb:
-        mock_emb.side_effect = ConnectionError("refused")
+    """generate_embedding returns [] when llama-server is unreachable."""
+    with patch("fileforge.analysis.embeddings.openai.OpenAI") as mock_client_cls:
+        mock_client = mock_client_cls.return_value
+        mock_client.embeddings.create.side_effect = ConnectionError("refused")
         result = generate_embedding("some text")
         assert result == []
 

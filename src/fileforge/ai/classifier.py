@@ -1,11 +1,11 @@
-"""LLM-based file classification via local Ollama."""
+"""LLM-based file classification via local llama-server (OpenAI-compatible)."""
 
 from __future__ import annotations
 
 import logging
 from pathlib import Path
 
-import ollama
+import openai
 
 _log = logging.getLogger(__name__)
 
@@ -49,14 +49,16 @@ def classify_file(
     snippet: str | None,
     model: str,
     hints: str,
+    base_url: str = "http://localhost:11434/v1",
 ) -> str:
-    """Classify a file using the local Ollama LLM.
+    """Classify a file using the local llama-server LLM.
 
     Args:
         path: Path to the file (used for name and extension).
         snippet: Extracted content snippet, or None for metadata-only.
-        model: Ollama model name (e.g. 'qwen3:4b').
+        model: Model name (e.g. 'qwen3-coder').
         hints: User-provided context hints to guide classification.
+        base_url: llama-server OpenAI-compatible base URL.
 
     Returns:
         Category path string (e.g. 'Work/Consulting/Proposals').
@@ -70,17 +72,18 @@ def classify_file(
     )
 
     try:
-        response = ollama.chat(
+        client = openai.OpenAI(base_url=base_url, api_key="ignored")
+        response = client.chat.completions.create(
             model=model,
             messages=[
                 {"role": "system", "content": _SYSTEM_PROMPT},
                 {"role": "user", "content": user_msg},
             ],
-            options={"temperature": 0.1},  # low temp for consistent output
+            temperature=0.1,
         )
-        return parse_category(response.message.content)
-    except (ollama.ResponseError, ollama.RequestError, ConnectionError, TimeoutError):
+        return parse_category(response.choices[0].message.content or "")
+    except (openai.APIConnectionError, openai.APIError, ConnectionError, TimeoutError):
         _log.warning(
-            "Ollama unavailable for %s; falling back to Uncategorized", path.name
+            "llama-server unavailable for %s; falling back to Uncategorized", path.name
         )
         return "Uncategorized"

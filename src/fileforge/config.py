@@ -18,7 +18,7 @@ class GeneralConfig(BaseModel):
 class AIConfig(BaseModel):
     classification_model: str = "qwen3:4b"
     embedding_model: str = "nomic-embed-text"
-    ollama_url: str = "http://localhost:11434"
+    ollama_url: str = "http://localhost:11434/v1"
     snippet_length: int = 2000
     category_hints: str = ""
 

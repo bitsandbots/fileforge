@@ -5,11 +5,11 @@ build-backend = "hatchling.build"
 [project]
 name = "fileforge"
 version = "0.1.8"
-description = "AI-powered file organizer using local Ollama inference"
+description = "AI-powered file organizer using local llama.cpp inference"
 license = {text = "MIT"}
 readme = "README.md"
 requires-python = ">=3.11"
-keywords = ["file-organization", "ai", "ollama", "deduplication", "cli"]
+keywords = ["file-organization", "ai", "llama.cpp", "deduplication", "cli"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Environment :: Console",
@@ -32,7 +32,7 @@ dependencies = [
     "beautifulsoup4>=4",
     "chardet>=5",
     "Pillow>=10",
-    "ollama>=0.3",
+    "openai>=1.0",
     "numpy>=1.26",
     "scipy>=1.13",
     "Jinja2>=3",

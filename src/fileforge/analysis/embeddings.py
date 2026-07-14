@@ -5,19 +5,24 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 
-import ollama
+import openai
 
 from fileforge.models import FileRecord
 
 _log = logging.getLogger(__name__)
 
 
-def generate_embedding(text: str, model: str = "nomic-embed-text") -> list[float]:
-    """Generate an embedding for text using Ollama.
+def generate_embedding(
+    text: str,
+    model: str = "mxbai-embed-large-v1-F16",
+    base_url: str = "http://localhost:11435/v1",
+) -> list[float]:
+    """Generate an embedding for text using llama-server.
 
     Args:
         text: Text to embed.
-        model: Ollama model name.
+        model: Embedding model name served by llama-server.
+        base_url: llama-server OpenAI-compatible base URL.
 
     Returns:
         List of floats representing the embedding.
@@ -27,13 +32,11 @@ def generate_embedding(text: str, model: str = "nomic-embed-text") -> list[float
         return []
 
     try:
-        response = ollama.embeddings(
-            model=model,
-            prompt=text,
-        )
-        return response.get("embedding", [])
-    except (ollama.ResponseError, ollama.RequestError, ConnectionError, TimeoutError):
-        _log.warning("Ollama unavailable for embedding; skipping")
+        client = openai.OpenAI(base_url=base_url, api_key="ignored")
+        response = client.embeddings.create(model=model, input=text)
+        return response.data[0].embedding
+    except (openai.APIConnectionError, openai.APIError, ConnectionError, TimeoutError):
+        _log.warning("llama-server unavailable for embedding; skipping")
         return []
 
 
